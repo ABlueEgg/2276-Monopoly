@@ -1,31 +1,92 @@
-[gd_scene load_steps=8 format=3 uid="uid://7l173tk5bbnr"]
+[gd_scene load_steps=9 format=3 uid="uid://7l173tk5bbnr"]
 
 [ext_resource type="Script" path="res://Scripts/card_manager.gd" id="1_crxfy"]
+[ext_resource type="PackedScene" uid="uid://d1638o1n0gh6o" path="res://scenes/Opponent_card_slot.tscn" id="2_jt7y4"]
 [ext_resource type="PackedScene" uid="uid://dl2qflp80gu66" path="res://scenes/card_slot.tscn" id="3_06dlb"]
 [ext_resource type="Script" path="res://Scripts/player_hand.gd" id="3_flrcc"]
-[ext_resource type="Script" path="res://scenes/Deck.gd" id="4_fhdyw"]
+[ext_resource type="Script" path="res://Scripts/Deck.gd" id="4_fhdyw"]
 [ext_resource type="Texture2D" uid="uid://0xg2o01x80tr" path="res://Assets/Deck.png" id="5_fhevv"]
-[ext_resource type="Script" path="res://scenes/InputManager.gd" id="6_8wrfk"]
+[ext_resource type="Script" path="res://Scripts/InputManager.gd" id="6_8wrfk"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rka2t"]
 size = Vector2(178, 262)
 
 [node name="Main" type="Node2D"]
 
+[node name="CardSlots" type="Node2D" parent="."]
+
+[node name="CardSlot" parent="CardSlots" instance=ExtResource("3_06dlb")]
+z_index = -3
+position = Vector2(960, 750)
+scale = Vector2(0.6, 0.6)
+
+[node name="CardSlot2" parent="CardSlots" instance=ExtResource("3_06dlb")]
+z_index = -3
+position = Vector2(800, 750)
+scale = Vector2(0.6, 0.6)
+
+[node name="CardSlot3" parent="CardSlots" instance=ExtResource("3_06dlb")]
+z_index = -3
+position = Vector2(1600, 750)
+scale = Vector2(0.6, 0.6)
+
+[node name="CardSlot4" parent="CardSlots" instance=ExtResource("3_06dlb")]
+z_index = -3
+position = Vector2(1440, 750)
+scale = Vector2(0.6, 0.6)
+
+[node name="CardSlot5" parent="CardSlots" instance=ExtResource("3_06dlb")]
+z_index = -3
+position = Vector2(1280, 750)
+scale = Vector2(0.6, 0.6)
+
+[node name="CardSlot6" parent="CardSlots" instance=ExtResource("3_06dlb")]
+z_index = -3
+position = Vector2(640, 750)
+scale = Vector2(0.6, 0.6)
+
+[node name="CardSlot7" parent="CardSlots" instance=ExtResource("3_06dlb")]
+z_index = -3
+position = Vector2(1120, 750)
+scale = Vector2(0.6, 0.6)
+
+[node name="OpponentCardSlot" parent="CardSlots" instance=ExtResource("2_jt7y4")]
+position = Vector2(960, 270)
+scale = Vector2(0.6, 0.6)
+
+[node name="OpponentCardSlot2" parent="CardSlots" instance=ExtResource("2_jt7y4")]
+position = Vector2(800, 270)
+scale = Vector2(0.6, 0.6)
+
+[node name="OpponentCardSlot3" parent="CardSlots" instance=ExtResource("2_jt7y4")]
+position = Vector2(1600, 270)
+scale = Vector2(0.6, 0.6)
+
+[node name="OpponentCardSlot4" parent="CardSlots" instance=ExtResource("2_jt7y4")]
+position = Vector2(1440, 270)
+scale = Vector2(0.6, 0.6)
+
+[node name="OpponentCardSlot5" parent="CardSlots" instance=ExtResource("2_jt7y4")]
+position = Vector2(1280, 270)
+scale = Vector2(0.6, 0.6)
+
+[node name="OpponentCardSlot6" parent="CardSlots" instance=ExtResource("2_jt7y4")]
+position = Vector2(640, 270)
+scale = Vector2(0.6, 0.6)
+
+[node name="OpponentCardSlot7" parent="CardSlots" instance=ExtResource("2_jt7y4")]
+position = Vector2(1120, 270)
+scale = Vector2(0.6, 0.6)
+
 [node name="CardManager" type="Node2D" parent="."]
 script = ExtResource("1_crxfy")
-
-[node name="CardSlot" parent="." instance=ExtResource("3_06dlb")]
-position = Vector2(485, 235)
-
-[node name="CardSlot2" parent="." instance=ExtResource("3_06dlb")]
-position = Vector2(485, 235)
 
 [node name="PlayerHand" type="Node2D" parent="."]
 script = ExtResource("3_flrcc")
 
 [node name="Deck" type="Node2D" parent="."]
-position = Vector2(150, 890)
+position = Vector2(156, 531)
+scale = Vector2(0.8, 0.8)
 script = ExtResource("4_fhdyw")
 
 [node name="Sprite2D" type="Sprite2D" parent="Deck"]
@@ -48,6 +109,14 @@ offset_right = 31.0
 offset_bottom = 12.0
 scale = Vector2(2, 2)
 text = "0"
+metadata/_edit_use_anchors_ = true
 
 [node name="InputManager" type="Node2D" parent="."]
 script = ExtResource("6_8wrfk")
+
+[node name="EndTurnButton" type="Button" parent="."]
+offset_left = 348.0
+offset_top = 725.0
+offset_right = 444.0
+offset_bottom = 772.0
+text = "End Turn"
