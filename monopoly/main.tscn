@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://du8e7mxrdhc8p"]
+
+[ext_resource type="Script" path="res://card_manager.gd" id="1_crxfy"]
+[ext_resource type="PackedScene" uid="uid://dhwyigp1p610o" path="res://card.tscn" id="2_8tdcx"]
+
+[node name="Main" type="Node2D"]
+
+[node name="CardManager" type="Node2D" parent="."]
+script = ExtResource("1_crxfy")
+
+[node name="Card" parent="CardManager" instance=ExtResource("2_8tdcx")]
+position = Vector2(150, 124)
+
+[node name="Card2" parent="CardManager" instance=ExtResource("2_8tdcx")]
+position = Vector2(427, 186)
