@@ -1,7 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://du8e7mxrdhc8p"]
+[gd_scene load_steps=3 format=3 uid="uid://7l173tk5bbnr"]
 
 [ext_resource type="Script" path="res://card_manager.gd" id="1_crxfy"]
-[ext_resource type="PackedScene" uid="uid://dhwyigp1p610o" path="res://card.tscn" id="2_8tdcx"]
+[ext_resource type="PackedScene" uid="uid://dmeauhj457euf" path="res://card.tscn" id="2_8tdcx"]
 
 [node name="Main" type="Node2D"]
 
