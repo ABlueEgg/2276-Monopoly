@@ -1,11 +1,11 @@
 [gd_scene load_steps=8 format=3 uid="uid://dmeauhj457euf"]
 
-[ext_resource type="Texture2D" uid="uid://bksb58n8c2kat" path="res://Assets/icon.svg" id="1_454pi"]
 [ext_resource type="Script" path="res://Scripts/card.gd" id="1_a54i0"]
+
 [ext_resource type="Texture2D" uid="uid://dv83my3jnn3q2" path="res://Assets/CardBackImage.png" id="2_mjore"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_mlrie"]
-size = Vector2(113, 117)
+size = Vector2(136, 221)
 
 [sub_resource type="Animation" id="Animation_e0d5o"]
 length = 0.001
@@ -172,7 +172,9 @@ script = ExtResource("1_a54i0")
 texture = ExtResource("2_mjore")
 
 [node name="Card_Image" type="Sprite2D" parent="."]
-texture = ExtResource("1_454pi")
+position = Vector2(1, -0.999979)
+scale = Vector2(0.761111, 0.772222)
+texture = ExtResource("2_7ljqy")
 
 [node name="Area2D" type="Area2D" parent="."]
 

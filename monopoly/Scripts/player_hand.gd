@@ -2,8 +2,8 @@ extends Node2D
 
 
 const CARD_WIDTH = 200 
-const HAND_Y_POSITION = 890
-const DEFAULT_CARD_MOVE_SPEED = 1
+const HAND_Y_POSITION = 955
+const DEFAULT_CARD_MOVE_SPEED = 0.5
 
 var player_hand = []
 var center_screen_x
@@ -34,9 +34,28 @@ func calculate_card_position(index):
 	return x_offset
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func animate_card_to_position(card, new_position, speed):
+func animate_card_to_position(card, target_position, speed, is_recentering := false):
+	# If there's an existing tween on this card, kill it so it doesn't block interaction
+	if card.has_meta("tween") and card.get_meta("tween") != null:
+		var old_tween = card.get_meta("tween")
+		if old_tween is Tween:
+			old_tween.kill()
+		card.set_meta("tween", null)
+	# ensure collision is enabled while moving (so it can be picked up)
+	var collision = card.get_node_or_null("Area2D/CollisionShape2D")
+	if collision:
+		collision.disabled = false
 	var tween = get_tree().create_tween()
-	tween.tween_property(card, "position", new_position, speed) 
+	card.set_meta("tween", tween)
+	var duration = is_recentering if is_recentering else speed
+	tween.tween_property(card, "position", target_position, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	# when finished, clean up and ensure interaction is available
+	await tween.finished
+	# clear stored tween reference
+	card.set_meta("tween", null)
+	# ensure collision is enabled at end (so the player can hover/select immediately)
+	if collision:
+		collision.disabled = false
 	
 func remove_card_from_hand(card):
 	if card in player_hand:
