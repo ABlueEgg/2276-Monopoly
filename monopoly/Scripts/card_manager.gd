@@ -36,16 +36,19 @@ func finish_drag():
 	if card_being_dragged == null:
 		return
 	var card_slot_found = raycast_check_for_card_slot()
-	if card_slot_found and not card_slot_found.card_in_slot:
-		#card dropped in card slot
+	var discard_pile_found = raycast_check_for_discard_pile()
+	if card_slot_found and "card_in_slot" in card_slot_found and not card_slot_found.card_in_slot:
+		# Card dropped in a valid empty slot
 		card_being_dragged.scale = Vector2(CARD_SMALLER_SCALE, CARD_SMALLER_SCALE)
 		card_being_dragged.z_index = -1
 		card_being_dragged.card_slot_card_in_slot = card_slot_found
 		player_hand_reference.remove_card_from_hand(card_being_dragged)
-		# Drop on valid empty slot
 		card_being_dragged.position = card_slot_found.position
 		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = true
 		card_slot_found.card_in_slot = true
+	elif discard_pile_found:
+		discard_pile_found.add_card_to_discard(card_being_dragged)
+
 	else:
 		# Return card to player's hand
 		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = false
@@ -92,12 +95,11 @@ func highlight_card(card, hovered):
 		card.z_index = 1
 	
 func raycast_check_for_card_slot():
-	# pulled from godot documentation
 	var space_state = get_world_2d().direct_space_state
 	var parameters = PhysicsPointQueryParameters2D.new()
 	parameters.position = get_global_mouse_position()
 	parameters.collide_with_areas = true
-	parameters.collision_mask = COLLISION_MASK_CARD_SLOT
+	parameters.collision_mask = COLLISION_MASK_CARD_SLOT  # This should be 2
 	var result = space_state.intersect_point(parameters)
 	if result.size() > 0:
 		return result[0].collider.get_parent()
@@ -114,6 +116,33 @@ func raycast_check_for_card():
 	if result.size() > 0:
 		return get_card_with_highest_z_index(result)
 	return null
+	
+func raycast_check_for_discard_pile():
+	var space_state = get_world_2d().direct_space_state
+	var params = PhysicsPointQueryParameters2D.new()
+	params.position = get_global_mouse_position()
+	params.collide_with_areas = true
+	# keep your discard collision mask here (ensure DiscardPile uses this layer)
+	params.collision_mask = 4
+	var result = space_state.intersect_point(params)
+	if result.size() == 0:
+		return null
+	# loop through all hits and find a parent that implements add_card_to_discard
+	for i in range(result.size()):
+		var collider = result[i].collider
+		if collider == null:
+			continue
+		var node = collider.get_parent()  # often Area2D's parent
+		# climb parents to find an appropriate node (safety: stop at scene root)
+		while node:
+			if node.has_method("add_card_to_discard"):
+				return node
+			# stop if we've reached the scene root (avoid infinite loop)
+			if node == get_tree().current_scene:
+				break
+			node = node.get_parent()
+	return null
+	
 func get_card_with_highest_z_index(cards):
 	var highest_z_card = cards[0].collider.get_parent()
 	var highest_z_index = highest_z_card.z_index
