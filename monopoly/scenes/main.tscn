@@ -90,7 +90,6 @@ scale = Vector2(0.8, 0.8)
 script = ExtResource("4_fhdyw")
 
 [node name="Sprite2D" type="Sprite2D" parent="Deck"]
-z_index = -2
 texture = ExtResource("5_fhevv")
 
 [node name="Area2D" type="Area2D" parent="Deck"]
