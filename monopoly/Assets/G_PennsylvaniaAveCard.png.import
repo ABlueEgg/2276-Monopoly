@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://xv74o2sx7uy2"
-path="res://.godot/imported/DB_BoardWalkCard.png-2a3dc79c91705836008886ff7a261d91.ctex"
+uid="uid://blx8hyv01eeht"
+path="res://.godot/imported/G_PennsylvaniaAveCard.png-3ae4bbb06aea8db9584b47497d24bc34.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Assets/DB_BoardWalkCard.png"
-dest_files=["res://.godot/imported/DB_BoardWalkCard.png-2a3dc79c91705836008886ff7a261d91.ctex"]
+source_file="res://Assets/G_PennsylvaniaAveCard.png"
+dest_files=["res://.godot/imported/G_PennsylvaniaAveCard.png-3ae4bbb06aea8db9584b47497d24bc34.ctex"]
 
 [params]
 

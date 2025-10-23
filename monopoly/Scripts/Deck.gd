@@ -6,8 +6,8 @@ const STARTING_HAND_SIZE = 5
 const MAX_CARDS_PER_TURN = 2
 
 #deck needs to be updated with all the cards, the doubles are temp
-var player_deck = ["R_KentuckyAve", "R_Illunois","DB_ParkPlace", "R_KentuckyAve", 
-"R_Illunois","DB_ParkPlace", "R_KentuckyAve", "R_Illunois","DB_ParkPlace"]
+var player_deck = ["R_KentuckyAve", "R_Illunois","DB_ParkPlace", "Y_AtlanticAve", 
+"G_PacificAve","G_NorthCarolinaAve", "R_IndianaAve", "R_Illunois","Y_VentnorAve"]
 var card_database_reference
 var cards_drawn_this_turn := 0
 
