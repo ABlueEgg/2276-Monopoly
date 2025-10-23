@@ -13,6 +13,7 @@ var card_being_dragged
 var is_hovering_on_card
 var player_hand_reference
 var played_card
+var cardDbRef
 
 # Called when the node enters the scene tree for the first time.
 #this function makes sure the cards cant go off screen
@@ -20,6 +21,7 @@ func _ready() -> void:
 	screen_size = get_viewport_rect().size
 	player_hand_reference = $"../PlayerHand"
 	$"../InputManager".connect("left_mouse_button_released", on_left_click_released)
+	cardDbRef = $"../CardDatabase"
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -46,16 +48,16 @@ func finish_drag():
 		card_being_dragged.position = card_slot_found.position
 		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = true
 		card_slot_found.card_in_slot = true
+		cardDbRef.COLOURS[card_being_dragged.get_colour()] -= 1 
 	elif discard_pile_found:
 		discard_pile_found.add_card_to_discard(card_being_dragged)
-
+		player_hand_reference.remove_card_from_hand(card_being_dragged)
 	else:
 		# Return card to player's hand
 		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = false
 		player_hand_reference.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
 	card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
 	card_being_dragged = null
-
 			
 func connect_card_signals(card):
 	card.connect("hovered", on_hovered_over_card)

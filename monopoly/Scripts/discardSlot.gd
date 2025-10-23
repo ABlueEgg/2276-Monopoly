@@ -7,7 +7,7 @@ var discarded_cards := []
 const OFFSET = Vector2(5, -5)
 const CARD_SCALE = 0.8
 const TWEEN_TIME = 0.2
-const TARGET_POS = Vector2(152, 774)
+const TARGET_POS = Vector2(97, 972)
 
 func _ready():
 	# Ensure everything is visible
