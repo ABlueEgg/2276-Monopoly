@@ -1,4 +1,7 @@
+extends Node2D
+
 const CARDS = { 
+
 	#first value is attack and second value is health
 	#we can modify it with color and value later
 	"DB_ParkPlace": [2,3],
@@ -12,5 +15,13 @@ const CARDS = {
 	"Y_AtlanticAve":[4,5],
 	"Y_MarvinGardens":[1,6],
 	"Y_VentnorAve":[3,5]
+	
+}
+
+var COLOURS = { 
+	#indicates how many properties each colour needs 
+	#to be a full set
+	"red": 3,
+	"blue": 2
 	
 }
