@@ -1,6 +1,6 @@
-[gd_scene load_steps=10 format=3 uid="uid://7l173tk5bbnr"]
+[gd_scene load_steps=11 format=3 uid="uid://7l173tk5bbnr"]
 
-[ext_resource type="Script" path="res://Scripts/main.gd" id="1_27x0l"]
+[ext_resource type="Script" path="res://scenes/main.gd" id="1_27x0l"]
 [ext_resource type="Script" path="res://Scripts/card_manager.gd" id="1_crxfy"]
 [ext_resource type="PackedScene" uid="uid://d1638o1n0gh6o" path="res://scenes/Opponent_card_slot.tscn" id="2_jt7y4"]
 [ext_resource type="PackedScene" uid="uid://dl2qflp80gu66" path="res://scenes/card_slot.tscn" id="3_06dlb"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://Scripts/Deck.gd" id="4_fhdyw"]
 [ext_resource type="Texture2D" uid="uid://0xg2o01x80tr" path="res://Assets/Deck.png" id="5_fhevv"]
 [ext_resource type="Script" path="res://Scripts/InputManager.gd" id="6_8wrfk"]
+[ext_resource type="Script" path="res://scenes/discardSlot.gd" id="9_6o6xq"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rka2t"]
 size = Vector2(178, 262)
@@ -178,3 +179,15 @@ offset_top = 725.0
 offset_right = 444.0
 offset_bottom = 772.0
 text = "End Turn"
+
+[node name="DiscardSlot" parent="." instance=ExtResource("3_06dlb")]
+z_index = -3
+position = Vector2(152, 774)
+scale = Vector2(0.6, 0.6)
+script = ExtResource("9_6o6xq")
+
+[node name="Area2D2" type="Area2D" parent="DiscardSlot"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DiscardSlot/Area2D2"]
+
+[node name="Sprite2D" type="Sprite2D" parent="DiscardSlot"]
