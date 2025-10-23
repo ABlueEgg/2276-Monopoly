@@ -49,3 +49,4 @@ func _start_game() -> void:
 	if $Deck.has_method("_ready"):
 		$Deck._ready()
 	$Deck.start_deck()
+	
