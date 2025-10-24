@@ -198,4 +198,22 @@ text = "End Turn"
 [node name="CardDatabase" type="Node2D" parent="."]
 script = ExtResource("9_2n8ul")
 
+[node name="winLabel" type="Label" parent="."]
+visible = false
+offset_left = 1048.0
+offset_top = 411.0
+offset_right = 1223.0
+offset_bottom = 466.0
+theme_override_font_sizes/font_size = 40
+text = "You win!!"
+
+[node name="EndGameButton" type="Button" parent="."]
+offset_left = 1618.0
+offset_top = 23.0
+offset_right = 1886.0
+offset_bottom = 100.0
+theme_override_font_sizes/font_size = 50
+text = "Quit Game"
+
 [connection signal="pressed" from="EndTurnButton" to="." method="_on_end_turn_button_pressed"]
+[connection signal="pressed" from="EndGameButton" to="." method="_on_end_game_button_pressed"]
