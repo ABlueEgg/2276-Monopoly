@@ -14,7 +14,9 @@ var is_hovering_on_card
 var player_hand_reference
 var played_card
 var cardDbRef 
-var slot_cards := [] #array to track cards placed in slots
+#var slot_cards := [] #array to track cards placed in slots
+
+var playing = true
 
 # Called when the node enters the scene tree for the first time.
 #this function makes sure the cards cant go off screen
@@ -26,6 +28,8 @@ func _ready() -> void:
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
+	if not playing:
+		return
 	if card_being_dragged:
 		var mouse_pos = get_global_mouse_position()
 		card_being_dragged.position = Vector2(clamp(mouse_pos.x, 0, screen_size.x),
@@ -39,7 +43,7 @@ func finish_drag():
 	if card_being_dragged == null:
 		return
 	var card_slot_found = raycast_check_for_card_slot()
-	var discard_pile_found = raycast_check_for_discard_pile()
+	var bank_pile_found = raycast_check_for_bank_pile()
 	if card_slot_found and not card_slot_found.card_in_slot:
 		# Card dropped in a valid empty slot
 		card_being_dragged.scale = Vector2(CARD_SMALLER_SCALE, CARD_SMALLER_SCALE)
@@ -49,18 +53,13 @@ func finish_drag():
 		card_being_dragged.position = card_slot_found.position
 		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = true
 		card_slot_found.card_in_slot = true
-		slot_cards.append(card_being_dragged)
-		var slot_debug := []
-		for c in slot_cards:
-			slot_debug.append(c.name + ":" + str(c.cardColour))
-		print("slot cards:" , slot_debug)
-		var colour = card_being_dragged.get_colour()
-		if cardDbRef.COLOURS.has(colour):
-			cardDbRef.COLOURS[colour] -= 1
-		if $"../Deck".check_win_condition(slot_cards):
-			$"../Deck".win()
-	elif discard_pile_found:
-		discard_pile_found.add_card_to_discard(card_being_dragged)
+		var col = card_being_dragged.get_colour()
+		if cardDbRef.COLOURS.has(col):
+			cardDbRef.COLOURS[col] -= 1
+			print(col,"now at",cardDbRef.COLOURS[col])
+		check_win()
+	elif bank_pile_found:
+		bank_pile_found.add_card_to_bank(card_being_dragged)
 		player_hand_reference.remove_card_from_hand(card_being_dragged)
 	else:
 		# Return card to player's hand
@@ -74,6 +73,19 @@ func connect_card_signals(card):
 	card.connect("hovered_off", on_hovered_off_card)
 	card.scale = Vector2(DEFAULT_CARD_SCALE, DEFAULT_CARD_SCALE)  
 	card.z_index = 1 
+
+func check_win():
+	var counter = 0
+	for col in cardDbRef.COLOURS:
+		if cardDbRef.COLOURS[col] <= 0:
+			counter += 1
+	if counter >= 3:
+		win()
+
+func win():
+	$"../winLabel".visible = true
+	#$"../horribleSpaghetti".visible = true
+	playing = false
 
 func on_left_click_released():
 	if card_being_dragged:
@@ -129,17 +141,17 @@ func raycast_check_for_card():
 		return get_card_with_highest_z_index(result)
 	return null
 	
-func raycast_check_for_discard_pile():
+func raycast_check_for_bank_pile():
 	var space_state = get_world_2d().direct_space_state
 	var params = PhysicsPointQueryParameters2D.new()
 	params.position = get_global_mouse_position()
 	params.collide_with_areas = true
-	# keep your discard collision mask here (ensure DiscardPile uses this layer)
+	# keep bank collision mask here (ensure Bank uses this layer)
 	params.collision_mask = 4
 	var result = space_state.intersect_point(params)
 	if result.size() == 0:
 		return null
-	# loop through all hits and find a parent that implements add_card_to_discard
+	# loop through all hits and find a parent that implements add_card_to_bank
 	for i in range(result.size()):
 		var collider = result[i].collider
 		if collider == null:
@@ -147,7 +159,7 @@ func raycast_check_for_discard_pile():
 		var node = collider.get_parent()  # often Area2D's parent
 		# climb parents to find an appropriate node (safety: stop at scene root)
 		while node:
-			if node.has_method("add_card_to_discard"):
+			if node.has_method("add_card_to_bank"):
 				return node
 			# stop if we've reached the scene root (avoid infinite loop)
 			if node == get_tree().current_scene:
@@ -165,4 +177,3 @@ func get_card_with_highest_z_index(cards):
 			highest_z_card = current_card
 			highest_z_index = current_card.z_index
 	return highest_z_card
-	

@@ -43,7 +43,7 @@ func animate_card_to_position(card, target_position, speed, is_recentering := fa
 	var collision = card.get_node_or_null("Area2D/CollisionShape2D")
 	if collision:
 		collision.disabled = false
-	# ✅ Proper tween speed logic
+	# Proper tween speed logic
 	var duration = RECENTER_SPEED if is_recentering else speed
 	var tween = get_tree().create_tween()
 	card.set_meta("tween", tween)

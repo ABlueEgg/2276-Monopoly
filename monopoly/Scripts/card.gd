@@ -6,7 +6,7 @@ signal hovered_off
 var position_in_hand
 var card_slot_card_in_slot
 var cardValue 
-var cardColour := ""
+var cardColour 
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:

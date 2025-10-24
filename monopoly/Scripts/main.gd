@@ -1,10 +1,10 @@
 extends Node2D
 
 func _ready() -> void:
-	var discard_scene = preload("res://scenes/discard_slot.tscn")
-	var discard_instance = discard_scene.instantiate()
-	discard_instance.position = Vector2(152, 774)  # Adjust to visible area
-	add_child(discard_instance)
+	var bank_scene = preload("res://scenes/bank.tscn")
+	var bank_instance = bank_scene.instantiate()
+	bank_instance.position = Vector2(152, 774)  # Adjust to visible area
+	add_child(bank_instance)
 	# Hide gameplay elements at start
 	$Deck.visible = false
 	$RulesPrompt/RulesText.visible = false
@@ -22,7 +22,7 @@ Turn: Draw two cards
 Action: Play up to three cards from your hand
 Bank: Money and action cards with a money value go into your bank
 Properties: Place property cards in the card slots in front of you. Stack same-colored properties together and start a new pile for different colors. 
-End turn: You cannot have more than seven cards in your hand at the end of your turn. Discard any excess cards. 
+End turn: You cannot have more than seven cards in your hand at the end of your turn. Add them to the bank.
 Winning the game
 The first player to collect three full property sets of different colors wins the game. 
 You can win with two of the same color property set, as long as there are other full sets of different colors. 
@@ -50,3 +50,5 @@ func _start_game() -> void:
 		$Deck._ready()
 	$Deck.start_deck()
 	
+func _on_end_game_button_pressed() -> void:
+	get_tree().quit()

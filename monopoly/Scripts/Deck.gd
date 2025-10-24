@@ -77,10 +77,6 @@ func draw_card(force_draw := false) -> void:
 		card_manager.add_child(new_card)
 	if player_hand:
 		player_hand.add_card_to_hand(new_card, CARD_DRAW_SPEED)
-	if check_win_condition(player_hand.player_hand):
-		win()
-		cards_drawn_this_turn = MAX_CARDS_PER_TURN
-		return
 	var anim_player = new_card.get_node_or_null("AnimationPlayer")
 	if anim_player:
 		anim_player.play("card_flip")
@@ -103,31 +99,3 @@ func show_max_card_popup() -> void:
 	tween.tween_property(popup, "modulate:a", 0.0, 0.5)
 	await tween.finished
 	popup.queue_free()
-	
-func win() -> void:
-	var popup = Label.new()
-	popup.text = "You Won!"
-	popup.add_theme_color_override("font_color", Color.WHITE)
-	popup.add_theme_font_size_override("font_size", 40)
-	popup.modulate = Color(1, 1, 1, 0)
-	popup.position = Vector2(800, 540)
-	popup.z_index = 999
-	get_tree().current_scene.add_child(popup)
-	var tween = get_tree().create_tween()
-	tween.tween_property(popup, "modulate:a", 1.0, 0.3)
-	tween.tween_interval(1.5)
-	tween.tween_property(popup, "modulate:a", 0.0, 0.5)
-	await tween.finished
-	popup.queue_free()
-
-func check_win_condition(cards_array: Array) -> bool:
-	var colour_counts := {}
-	for card in cards_array:
-		var colour = card.cardColour
-		colour_counts[colour] = colour_counts.get(colour, 0) +1
-	var full_sets := 0
-	for colour in card_database_reference.COLOURS.keys():
-		if colour_counts.get(colour, 0) >= card_database_reference.COLOURS[colour]:
-			full_sets += 1
-	print("Colour counts:", colour_counts, "Full sets:", full_sets)
-	return full_sets >= 3
