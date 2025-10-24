@@ -14,7 +14,7 @@ var is_hovering_on_card
 var player_hand_reference
 var played_card
 var cardDbRef 
-#var slot_cards := [] #array to track cards placed in slots
+var cards_played_this_turn = 0
 
 var playing = true
 
@@ -44,7 +44,7 @@ func finish_drag():
 		return
 	var card_slot_found = raycast_check_for_card_slot()
 	var bank_pile_found = raycast_check_for_bank_pile()
-	if card_slot_found and not card_slot_found.card_in_slot:
+	if card_slot_found and not card_slot_found.card_in_slot and cards_played_this_turn < 3:
 		# Card dropped in a valid empty slot
 		card_being_dragged.scale = Vector2(CARD_SMALLER_SCALE, CARD_SMALLER_SCALE)
 		card_being_dragged.z_index = -1
@@ -58,16 +58,39 @@ func finish_drag():
 			cardDbRef.COLOURS[col] -= 1
 			print(col,"now at",cardDbRef.COLOURS[col])
 		check_win()
-	elif bank_pile_found:
+		cards_played_this_turn += 1
+	elif bank_pile_found and cards_played_this_turn < 3:
 		bank_pile_found.add_card_to_bank(card_being_dragged)
 		player_hand_reference.remove_card_from_hand(card_being_dragged)
+		cards_played_this_turn += 1
 	else:
 		# Return card to player's hand
+		if cards_played_this_turn >= 3:
+			max_cards_played_popup()
 		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = false
 		player_hand_reference.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
 	card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
 	card_being_dragged = null
 			
+func max_cards_played_popup() -> void:
+	var popup = Label.new()
+	popup.text = "You can only play three cards per turn!"
+	popup.add_theme_color_override("font_color", Color.WHITE)
+	popup.add_theme_font_size_override("font_size", 40)
+	popup.modulate = Color(1, 1, 1, 0)
+	popup.position = Vector2(800, 540)
+	popup.z_index = 999
+	get_tree().current_scene.add_child(popup)
+	var tween = get_tree().create_tween()
+	tween.tween_property(popup, "modulate:a", 1.0, 0.3)
+	tween.tween_interval(1.5)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.5)
+	await tween.finished
+	popup.queue_free()
+
+func newTurn():
+	cards_played_this_turn = 0
+
 func connect_card_signals(card):
 	card.connect("hovered", on_hovered_over_card)
 	card.connect("hovered_off", on_hovered_off_card)
