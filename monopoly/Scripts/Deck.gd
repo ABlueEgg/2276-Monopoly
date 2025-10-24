@@ -83,12 +83,13 @@ func draw_card(force_draw := false) -> void:
 
 func start_new_turn() -> void:
 	cards_drawn_this_turn = 0
+	$"../CardManager".newTurn()
 
 func show_max_card_popup() -> void:
 	var popup = Label.new()
 	popup.text = "You’ve selected the maximum number of cards for this turn!"
 	popup.add_theme_color_override("font_color", Color.WHITE)
-	popup.add_theme_font_size_override("font_size", 22)
+	popup.add_theme_font_size_override("font_size", 40)
 	popup.modulate = Color(1, 1, 1, 0)
 	popup.position = Vector2(800, 540)
 	popup.z_index = 999
