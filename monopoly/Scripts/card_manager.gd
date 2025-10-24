@@ -13,7 +13,8 @@ var card_being_dragged
 var is_hovering_on_card
 var player_hand_reference
 var played_card
-var cardDbRef
+var cardDbRef 
+var slot_cards := [] #array to track cards placed in slots
 
 # Called when the node enters the scene tree for the first time.
 #this function makes sure the cards cant go off screen
@@ -39,7 +40,7 @@ func finish_drag():
 		return
 	var card_slot_found = raycast_check_for_card_slot()
 	var discard_pile_found = raycast_check_for_discard_pile()
-	if card_slot_found and "card_in_slot" in card_slot_found and not card_slot_found.card_in_slot:
+	if card_slot_found and not card_slot_found.card_in_slot:
 		# Card dropped in a valid empty slot
 		card_being_dragged.scale = Vector2(CARD_SMALLER_SCALE, CARD_SMALLER_SCALE)
 		card_being_dragged.z_index = -1
@@ -48,7 +49,16 @@ func finish_drag():
 		card_being_dragged.position = card_slot_found.position
 		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = true
 		card_slot_found.card_in_slot = true
-		cardDbRef.COLOURS[card_being_dragged.get_colour()] -= 1 
+		slot_cards.append(card_being_dragged)
+		var slot_debug := []
+		for c in slot_cards:
+			slot_debug.append(c.name + ":" + str(c.cardColour))
+		print("slot cards:" , slot_debug)
+		var colour = card_being_dragged.get_colour()
+		if cardDbRef.COLOURS.has(colour):
+			cardDbRef.COLOURS[colour] -= 1
+		if $"../Deck".check_win_condition(slot_cards):
+			$"../Deck".win()
 	elif discard_pile_found:
 		discard_pile_found.add_card_to_discard(card_being_dragged)
 		player_hand_reference.remove_card_from_hand(card_being_dragged)
