@@ -75,7 +75,7 @@ func finish_drag():
 func max_cards_played_popup() -> void:
 	var popup = Label.new()
 	popup.text = "You can only play three cards per turn!"
-	popup.add_theme_color_override("font_color", Color.WHITE)
+	popup.add_theme_color_override("font_color", Color.RED)
 	popup.add_theme_font_size_override("font_size", 40)
 	popup.modulate = Color(1, 1, 1, 0)
 	popup.position = Vector2(800, 540)
