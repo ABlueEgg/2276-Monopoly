@@ -233,5 +233,12 @@ position = Vector2(1750, 250)
 scale = Vector2(0.8, 0.8)
 texture = ExtResource("5_fhevv")
 
+[node name="MessageLabel" type="Label" parent="."]
+offset_left = 1040.0
+offset_top = 411.0
+offset_right = 1215.0
+offset_bottom = 466.0
+theme_override_font_sizes/font_size = 35
+
 [connection signal="pressed" from="EndTurnButton" to="." method="_on_end_turn_button_pressed"]
 [connection signal="pressed" from="EndGameButton" to="." method="_on_end_game_button_pressed"]

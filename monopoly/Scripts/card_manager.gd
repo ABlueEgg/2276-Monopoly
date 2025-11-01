@@ -17,7 +17,7 @@ var cardDbRef
 var cards_played_this_turn = 0
 
 var playing = true
-
+var announced_sets := {}
 # Called when the node enters the scene tree for the first time.
 #this function makes sure the cards cant go off screen
 func _ready() -> void:
@@ -98,10 +98,28 @@ func connect_card_signals(card):
 	card.z_index = 1 
 
 func check_win():
-	var counter = 0
+	var counter := 0
+	# 1) First pass: count completed sets
 	for col in cardDbRef.COLOURS:
 		if cardDbRef.COLOURS[col] <= 0:
 			counter += 1
+	# 2) Second pass: announce any *newly* completed colours and show "sets left"
+	for col in cardDbRef.COLOURS:
+		if cardDbRef.COLOURS[col] <= 0 and not announced_sets.get(col, false):
+			announced_sets[col] = true
+			var remaining: int = max(3 - counter, 0)
+			var info_label := $"../MessageLabel"
+			info_label.text = "%s Set Completed!  %d set%s left to win!" % [
+				col,
+				remaining,
+				("s" if remaining != 1 else "")
+			]
+			info_label.visible = true
+			info_label.modulate.a = 1.0
+			var t := create_tween()
+			t.tween_property(info_label, "modulate:a", 0.0, 2.0).set_delay(0.5)
+			t.tween_callback(func(): info_label.visible = false)
+	# 3) Win check
 	if counter >= 3:
 		win()
 
