@@ -4,6 +4,7 @@ func _ready() -> void:
 	var bank_scene = preload("res://scenes/bank.tscn")
 	var bank_instance = bank_scene.instantiate()
 	bank_instance.position = Vector2(152, 774)  # Adjust to visible area
+	bank_instance.name = "Bank" #so we can fint it
 	add_child(bank_instance)
 	# Hide gameplay elements at start
 	$Deck.visible = false

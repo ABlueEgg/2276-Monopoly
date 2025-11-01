@@ -1,6 +1,6 @@
 extends Node2D
-
-const CARD_WIDTH = 200
+# less CARD_WIDTH => more space for cards
+const CARD_WIDTH = 120
 const HAND_Y_POSITION = 955
 const DEFAULT_CARD_MOVE_SPEED = 0.5
 const RECENTER_SPEED = 0.25  # faster recenters
