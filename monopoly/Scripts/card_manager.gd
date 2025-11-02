@@ -1,6 +1,4 @@
 extends Node2D
-# Cards dropped into a slot "claim" it by colour. Only that colour can go in afterward.
-# When slot reaches the required set size (from CardDatabase.COLOURS[col]), the set is finalized.
 
 const COLLISION_MASK_CARD: int = 1
 const COLLISION_MASK_CARD_SLOT: int = 2
@@ -9,9 +7,8 @@ const DEFAULT_CARD_SCALE: float = 0.8
 const CARD_BIGGER_SCALE: float = 0.85
 const CARD_SMALLER_SCALE: float = 0.6
 
-# Visual tuning for fanning cards inside a slot
-const SLOT_OFFSET := Vector2(18, -2) # per-card offset inside a slot
-const SLOT_Z_BASE := 200             # base z_index for cards inside a slot
+const SLOT_OFFSET := Vector2(18, -2) 
+const SLOT_Z_BASE := 200     
 
 var screen_size: Vector2
 var card_being_dragged: Node2D
@@ -21,8 +18,6 @@ var cardDbRef: Node
 var cards_played_this_turn: int = 0
 
 var playing: bool = true
-
-# Global win tracking
 var total_sets_done: int = 0
 var announced_sets := {}
 
@@ -42,11 +37,7 @@ func _process(_delta: float) -> void:
 			clamp(mouse_pos.y, 0, screen_size.y)
 		)
 
-# -----------------------------
-# Drag & Drop
-# -----------------------------
 func start_drag(card: Node2D) -> void:
-	# If a card was already finalized in a completed set, don't allow dragging
 	if card.has_method("is_locked_in_set") and card.is_locked_in_set:
 		return
 	card_being_dragged = card
@@ -57,56 +48,35 @@ func start_drag(card: Node2D) -> void:
 func finish_drag() -> void:
 	if card_being_dragged == null:
 		return
-
 	var slot = raycast_check_for_card_slot()
 	var bank = raycast_check_for_bank_pile()
-
-	# 1) Drop into a slot/box (per-slot colour enforcement)
 	if slot and cards_played_this_turn < 3:
 		var col: String = _normalize_colour(str(card_being_dragged.get_colour()))
 		if _slot_can_accept(slot, col):
 			_place_card_into_slot(slot, card_being_dragged, col)
 			player_hand_reference.remove_card_from_hand(card_being_dragged)
 			cards_played_this_turn += 1
-
-			# If slot completed a set with this card, finalize and evaluate win
 			if _slot_is_complete(slot):
 				_finalize_slot_set(slot)
 				_check_global_win()
 		else:
 			_reject_to_hand_with_reason(card_being_dragged, slot)
-
-	# 2) Drop onto bank pile
 	elif bank and cards_played_this_turn < 3:
 		bank.add_card_to_bank(card_being_dragged)
 		player_hand_reference.remove_card_from_hand(card_being_dragged)
 		cards_played_this_turn += 1
-
-	# 3) Otherwise return to hand (or max-cards warning)
 	else:
 		if cards_played_this_turn >= 3:
 			max_cards_played_popup()
 		var shape := card_being_dragged.get_node("Area2D/CollisionShape2D") as CollisionShape2D
 		if shape: shape.disabled = false
 		player_hand_reference.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
-
-	# tidy up
 	if is_instance_valid(card_being_dragged):
 		card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
 	card_being_dragged = null
-
+	
 func newTurn() -> void:
 	cards_played_this_turn = 0
-
-# -----------------------------
-# Slot / Box logic
-# -----------------------------
-
-# Each slot stores:
-# - slot.assigned_colour: String (lowercase) or "" if unclaimed
-# - slot.cards_in_box: Array[Node2D] of cards placed in the slot
-# - slot.completed: bool (true once set finalized)
-# - slot.required: int (derived from CardDatabase.COLOURS[assigned_colour]) after the first card
 
 func _ensure_slot_data(slot: Node) -> void:
 	if not slot.has_meta("assigned_colour"):
@@ -118,6 +88,7 @@ func _ensure_slot_data(slot: Node) -> void:
 	if not slot.has_meta("required"):
 		slot.set_meta("required", 0)
 
+#save one color for one slot
 func _slot_assigned_colour(slot: Node) -> String:
 	_ensure_slot_data(slot)
 	return String(slot.get_meta("assigned_colour"))
@@ -134,42 +105,34 @@ func _slot_required(slot: Node) -> int:
 	_ensure_slot_data(slot)
 	return int(slot.get_meta("required"))
 
+#user can only added same color cards to one slot
 func _slot_set_assigned(slot: Node, col: String) -> void:
 	slot.set_meta("assigned_colour", col)
-	# set required from DB if possible
 	var req := 0
 	if cardDbRef and cardDbRef.COLOURS.has(col):
 		req = int(cardDbRef.COLOURS[col])
 	slot.set_meta("required", max(req, 1))
 
+#check users' cards can be added to a slot
 func _slot_can_accept(slot: Node, col: String) -> bool:
 	_ensure_slot_data(slot)
 	if _slot_completed(slot):
 		return false
 	var assigned := _slot_assigned_colour(slot)
-	# If unclaimed, any colour can start it
 	if assigned == "":
 		return true
-	# Once claimed, only that colour can enter
 	return assigned == col
 
+#put cards into the slot
 func _place_card_into_slot(slot: Node2D, card: Node2D, col: String) -> void:
 	_ensure_slot_data(slot)
-
-	# Claim slot if needed
 	if _slot_assigned_colour(slot) == "":
 		_slot_set_assigned(slot, col)
-
-	# Safety: same-colour enforcement
 	if _slot_assigned_colour(slot) != col:
-		return # should not happen due to _slot_can_accept
-
-	# Disable collision & drop visuals
+		return 
 	var shape := card.get_node("Area2D/CollisionShape2D") as CollisionShape2D
 	if shape: shape.disabled = true
-
-	# Parent and fan inside the slot
-	_reparent_keep_global(card, slot.get_parent())  # keep layering with sibling visuals
+	_reparent_keep_global(card, slot.get_parent())  
 	card.z_as_relative = false
 	var cards := _slot_cards(slot)
 	var index := cards.size()
@@ -178,26 +141,23 @@ func _place_card_into_slot(slot: Node2D, card: Node2D, col: String) -> void:
 	var target_pos := (slot as Node2D).position + SLOT_OFFSET * index
 	var t := create_tween()
 	t.tween_property(card, "position", target_pos, 0.18)
-
-	# Store into slot
 	cards.append(card)
 	slot.set_meta("cards_in_box", cards)
-
-	# Optional: mark card as locked to slot but still movable until set complete
 	if card.has_method("set_input_enabled"):
-		card.set_input_enabled(true) # allow hover; dragging governed by your Input
+		card.set_input_enabled(true) 
 	card.set("card_slot_card_in_slot", slot)
 
+#check if cards is complete as set in a slot
 func _slot_is_complete(slot: Node) -> bool:
 	var req := _slot_required(slot)
 	var count := _slot_cards(slot).size()
 	return req > 0 and count >= req
 
+#show the message when a set is finish, 
 func _finalize_slot_set(slot: Node) -> void:
 	if _slot_completed(slot):
 		return
 	slot.set_meta("completed", true)
-	# Lock all cards in the slot and give a nice fan + tiny rotation polish
 	var cards := _slot_cards(slot)
 	var base := (slot as Node2D).position
 	for i in range(cards.size()):
@@ -214,7 +174,6 @@ func _finalize_slot_set(slot: Node) -> void:
 			lerp(-4.0, 4.0, float(i) / max(1, cards.size() - 1)),
 			0.12
 		)
-	# Toast message and win progress
 	var col := _slot_assigned_colour(slot)
 	total_sets_done += 1
 	if total_sets_done < 3:
@@ -228,9 +187,6 @@ func _check_global_win() -> void:
 	if total_sets_done >= 3:
 		win()
 
-# -----------------------------
-# UI helpers
-# -----------------------------
 func _toast(msg: String) -> void:
 	var label: Label = $"../MessageLabel" as Label
 	if not is_instance_valid(label):
@@ -244,6 +200,7 @@ func _toast(msg: String) -> void:
 	t.tween_property(label, "modulate:a", 0.0, 2.0).set_delay(0.6)
 	t.tween_callback(func(): label.visible = false)
 
+#show message when user try to put different color in a slot that already has color
 func _reject_to_hand_with_reason(card: Node2D, slot: Node) -> void:
 	var assigned := _slot_assigned_colour(slot)
 	if assigned == "":
@@ -274,9 +231,6 @@ func win() -> void:
 	$"../winLabel".visible = true
 	playing = false
 
-# -----------------------------
-# Hover visuals
-# -----------------------------
 func connect_card_signals(card) -> void:
 	card.connect("hovered", on_hovered_over_card)
 	card.connect("hovered_off", on_hovered_off_card)
@@ -300,20 +254,14 @@ func on_hovered_off_card(card: Node2D) -> void:
 	card.scale = Vector2(DEFAULT_CARD_SCALE, DEFAULT_CARD_SCALE)
 	is_hovering_on_card = false
 
-# -----------------------------
-# Utilities & Raycasts
-# -----------------------------
 func _normalize_colour(raw: String) -> String:
 	var s := raw.strip_edges().to_lower()
-	# Exact DB key
 	for key in cardDbRef.COLOURS.keys():
 		var k := str(key).to_lower()
 		if s == k:
 			return k
-	# Common aliases
 	if s == "dark blue" or s == "dark_blue" or s == "blue(dark)":
 		return "dblue"
-	# Fallback: contains
 	for key in cardDbRef.COLOURS.keys():
 		var k2 := str(key).to_lower()
 		if s.findn(k2) != -1:
@@ -348,7 +296,7 @@ func raycast_check_for_bank_pile() -> Node:
 	var params := PhysicsPointQueryParameters2D.new()
 	params.position = get_global_mouse_position()
 	params.collide_with_areas = true
-	params.collision_mask = 4  # bank mask; ensure the Bank Area2D is on layer 4
+	params.collision_mask = 4  
 	var result: Array = space_state.intersect_point(params)
 	if result.size() == 0:
 		return null
