@@ -19,11 +19,10 @@ func _ready():
 	if sprite:
 		sprite.visible = true
 		sprite.z_index = 10
-		# Don't override scale — keep what you set in the editor
+		# Don't override scale 
 	else:
 		push_warning("Sprite2D not found in bank scene")
 	position = TARGET_POS
-	# Optional: move to visible coordinates if needed
 	
 	#Find the label and set its text directly
 	var label = $BankLabel
@@ -32,7 +31,6 @@ func _ready():
 	else:
 		push_warning("BankLabel node not found in Bank scene!")
 	#emit the signal on start to set any UI Labels to 0
-	
 
 func add_card_to_bank(card: Node2D) -> void:
 	if card == null:
