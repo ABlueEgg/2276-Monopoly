@@ -201,9 +201,9 @@ script = ExtResource("9_2n8ul")
 [node name="winLabel" type="Label" parent="."]
 visible = false
 offset_left = 1048.0
-offset_top = 411.0
+offset_top = 484.0
 offset_right = 1223.0
-offset_bottom = 466.0
+offset_bottom = 539.0
 theme_override_font_sizes/font_size = 40
 text = "You win!!"
 
@@ -250,6 +250,7 @@ offset_left = 86.0
 offset_top = 113.0
 offset_right = 186.0
 offset_bottom = 166.0
+theme_override_font_sizes/font_size = 40
 text = "Beginner Guide
 "
 
