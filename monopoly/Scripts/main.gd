@@ -14,7 +14,11 @@ func _ready() -> void:
 	$RulesPrompt/Panel/YesButton.pressed.connect(_on_yes_pressed)
 	$RulesPrompt/Panel/NoButton.pressed.connect(_on_no_pressed)
 	$RulesPrompt/StartGameButton.pressed.connect(_on_start_game_pressed)
-
+	$GuideButton.pressed.connect(_on_guide_button_pressed)
+	
+#runs when HelpButton is clicked
+func _on_guide_button_pressed():
+	$GuidePopup.popup_centered()
 func _on_yes_pressed() -> void:
 	$RulesPrompt/RulesText.text = """Game Rules:
 How to play
