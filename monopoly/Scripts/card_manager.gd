@@ -1,220 +1,366 @@
 extends Node2D
-# the image attached to cards is a temp image that can be changed later
+# Cards dropped into a slot "claim" it by colour. Only that colour can go in afterward.
+# When slot reaches the required set size (from CardDatabase.COLOURS[col]), the set is finalized.
 
-const COLLISION_MASK_CARD = 1
-const COLLISION_MASK_CARD_SLOT = 2
-const DEFAULT_CARD_MOVE_SPEED = 0.1
-const DEFAULT_CARD_SCALE = 0.8
-const CARD_BIGGER_SCALE = 0.85
-const CARD_SMALLER_SCALE = 0.6
+const COLLISION_MASK_CARD: int = 1
+const COLLISION_MASK_CARD_SLOT: int = 2
+const DEFAULT_CARD_MOVE_SPEED: float = 0.1
+const DEFAULT_CARD_SCALE: float = 0.8
+const CARD_BIGGER_SCALE: float = 0.85
+const CARD_SMALLER_SCALE: float = 0.6
 
-var screen_size
-var card_being_dragged
-var is_hovering_on_card
-var player_hand_reference
-var played_card
-var cardDbRef 
-var cards_played_this_turn = 0
+# Visual tuning for fanning cards inside a slot
+const SLOT_OFFSET := Vector2(18, -2) # per-card offset inside a slot
+const SLOT_Z_BASE := 200             # base z_index for cards inside a slot
 
-var playing = true
+var screen_size: Vector2
+var card_being_dragged: Node2D
+var is_hovering_on_card: bool = false
+var player_hand_reference: Node
+var cardDbRef: Node
+var cards_played_this_turn: int = 0
+
+var playing: bool = true
+
+# Global win tracking
+var total_sets_done: int = 0
 var announced_sets := {}
-# Called when the node enters the scene tree for the first time.
-#this function makes sure the cards cant go off screen
+
 func _ready() -> void:
 	screen_size = get_viewport_rect().size
 	player_hand_reference = $"../PlayerHand"
 	$"../InputManager".connect("left_mouse_button_released", on_left_click_released)
 	cardDbRef = $"../CardDatabase"
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if not playing:
 		return
 	if card_being_dragged:
-		var mouse_pos = get_global_mouse_position()
-		card_being_dragged.position = Vector2(clamp(mouse_pos.x, 0, screen_size.x),
-		clamp(mouse_pos.y, 0, screen_size.y))
+		var mouse_pos: Vector2 = get_global_mouse_position()
+		card_being_dragged.position = Vector2(
+			clamp(mouse_pos.x, 0, screen_size.x),
+			clamp(mouse_pos.y, 0, screen_size.y)
+		)
 
-func start_drag(card):
+# -----------------------------
+# Drag & Drop
+# -----------------------------
+func start_drag(card: Node2D) -> void:
+	# If a card was already finalized in a completed set, don't allow dragging
+	if card.has_method("is_locked_in_set") and card.is_locked_in_set:
+		return
 	card_being_dragged = card
-	card.scale = Vector2(DEFAULT_CARD_SCALE,DEFAULT_CARD_SCALE)
-	
-func finish_drag():
+	card.z_as_relative = false
+	card.z_index = 10000
+	card.scale = Vector2(DEFAULT_CARD_SCALE, DEFAULT_CARD_SCALE)
+
+func finish_drag() -> void:
 	if card_being_dragged == null:
 		return
-	var card_slot_found = raycast_check_for_card_slot()
-	var bank_pile_found = raycast_check_for_bank_pile()
-	if card_slot_found and not card_slot_found.card_in_slot and cards_played_this_turn < 3:
-		# Card dropped in a valid empty slot
-		card_being_dragged.scale = Vector2(CARD_SMALLER_SCALE, CARD_SMALLER_SCALE)
-		card_being_dragged.z_index = -1
-		card_being_dragged.card_slot_card_in_slot = card_slot_found
+
+	var slot = raycast_check_for_card_slot()
+	var bank = raycast_check_for_bank_pile()
+
+	# 1) Drop into a slot/box (per-slot colour enforcement)
+	if slot and cards_played_this_turn < 3:
+		var col: String = _normalize_colour(str(card_being_dragged.get_colour()))
+		if _slot_can_accept(slot, col):
+			_place_card_into_slot(slot, card_being_dragged, col)
+			player_hand_reference.remove_card_from_hand(card_being_dragged)
+			cards_played_this_turn += 1
+
+			# If slot completed a set with this card, finalize and evaluate win
+			if _slot_is_complete(slot):
+				_finalize_slot_set(slot)
+				_check_global_win()
+		else:
+			_reject_to_hand_with_reason(card_being_dragged, slot)
+
+	# 2) Drop onto bank pile
+	elif bank and cards_played_this_turn < 3:
+		bank.add_card_to_bank(card_being_dragged)
 		player_hand_reference.remove_card_from_hand(card_being_dragged)
-		card_being_dragged.position = card_slot_found.position
-		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = true
-		card_slot_found.card_in_slot = true
-		var col = card_being_dragged.get_colour()
-		if cardDbRef.COLOURS.has(col):
-			cardDbRef.COLOURS[col] -= 1
-			print(col,"now at",cardDbRef.COLOURS[col])
-		check_win()
 		cards_played_this_turn += 1
-	elif bank_pile_found and cards_played_this_turn < 3:
-		bank_pile_found.add_card_to_bank(card_being_dragged)
-		player_hand_reference.remove_card_from_hand(card_being_dragged)
-		cards_played_this_turn += 1
+
+	# 3) Otherwise return to hand (or max-cards warning)
 	else:
-		# Return card to player's hand
 		if cards_played_this_turn >= 3:
 			max_cards_played_popup()
-		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = false
+		var shape := card_being_dragged.get_node("Area2D/CollisionShape2D") as CollisionShape2D
+		if shape: shape.disabled = false
 		player_hand_reference.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
-	card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
+
+	# tidy up
+	if is_instance_valid(card_being_dragged):
+		card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
 	card_being_dragged = null
-			
+
+func newTurn() -> void:
+	cards_played_this_turn = 0
+
+# -----------------------------
+# Slot / Box logic
+# -----------------------------
+
+# Each slot stores:
+# - slot.assigned_colour: String (lowercase) or "" if unclaimed
+# - slot.cards_in_box: Array[Node2D] of cards placed in the slot
+# - slot.completed: bool (true once set finalized)
+# - slot.required: int (derived from CardDatabase.COLOURS[assigned_colour]) after the first card
+
+func _ensure_slot_data(slot: Node) -> void:
+	if not slot.has_meta("assigned_colour"):
+		slot.set_meta("assigned_colour", "")
+	if not slot.has_meta("cards_in_box"):
+		slot.set_meta("cards_in_box", [])
+	if not slot.has_meta("completed"):
+		slot.set_meta("completed", false)
+	if not slot.has_meta("required"):
+		slot.set_meta("required", 0)
+
+func _slot_assigned_colour(slot: Node) -> String:
+	_ensure_slot_data(slot)
+	return String(slot.get_meta("assigned_colour"))
+
+func _slot_cards(slot: Node) -> Array:
+	_ensure_slot_data(slot)
+	return slot.get_meta("cards_in_box") as Array
+
+func _slot_completed(slot: Node) -> bool:
+	_ensure_slot_data(slot)
+	return bool(slot.get_meta("completed"))
+
+func _slot_required(slot: Node) -> int:
+	_ensure_slot_data(slot)
+	return int(slot.get_meta("required"))
+
+func _slot_set_assigned(slot: Node, col: String) -> void:
+	slot.set_meta("assigned_colour", col)
+	# set required from DB if possible
+	var req := 0
+	if cardDbRef and cardDbRef.COLOURS.has(col):
+		req = int(cardDbRef.COLOURS[col])
+	slot.set_meta("required", max(req, 1))
+
+func _slot_can_accept(slot: Node, col: String) -> bool:
+	_ensure_slot_data(slot)
+	if _slot_completed(slot):
+		return false
+	var assigned := _slot_assigned_colour(slot)
+	# If unclaimed, any colour can start it
+	if assigned == "":
+		return true
+	# Once claimed, only that colour can enter
+	return assigned == col
+
+func _place_card_into_slot(slot: Node2D, card: Node2D, col: String) -> void:
+	_ensure_slot_data(slot)
+
+	# Claim slot if needed
+	if _slot_assigned_colour(slot) == "":
+		_slot_set_assigned(slot, col)
+
+	# Safety: same-colour enforcement
+	if _slot_assigned_colour(slot) != col:
+		return # should not happen due to _slot_can_accept
+
+	# Disable collision & drop visuals
+	var shape := card.get_node("Area2D/CollisionShape2D") as CollisionShape2D
+	if shape: shape.disabled = true
+
+	# Parent and fan inside the slot
+	_reparent_keep_global(card, slot.get_parent())  # keep layering with sibling visuals
+	card.z_as_relative = false
+	var cards := _slot_cards(slot)
+	var index := cards.size()
+	card.scale = Vector2(CARD_SMALLER_SCALE, CARD_SMALLER_SCALE)
+	card.z_index = SLOT_Z_BASE + index
+	var target_pos := (slot as Node2D).position + SLOT_OFFSET * index
+	var t := create_tween()
+	t.tween_property(card, "position", target_pos, 0.18)
+
+	# Store into slot
+	cards.append(card)
+	slot.set_meta("cards_in_box", cards)
+
+	# Optional: mark card as locked to slot but still movable until set complete
+	if card.has_method("set_input_enabled"):
+		card.set_input_enabled(true) # allow hover; dragging governed by your Input
+	card.set("card_slot_card_in_slot", slot)
+
+func _slot_is_complete(slot: Node) -> bool:
+	var req := _slot_required(slot)
+	var count := _slot_cards(slot).size()
+	return req > 0 and count >= req
+
+func _finalize_slot_set(slot: Node) -> void:
+	if _slot_completed(slot):
+		return
+	slot.set_meta("completed", true)
+	# Lock all cards in the slot and give a nice fan + tiny rotation polish
+	var cards := _slot_cards(slot)
+	var base := (slot as Node2D).position
+	for i in range(cards.size()):
+		var c: Node2D = cards[i]
+		if c.has_method("set_input_enabled"):
+			c.set_input_enabled(false)
+		c.set("is_locked_in_set", true)
+		c.z_index = SLOT_Z_BASE + i
+		var offset := SLOT_OFFSET * i
+		var t := create_tween()
+		t.tween_property(c, "position", base + offset, 0.12)
+		t.parallel().tween_property(
+			c, "rotation_degrees",
+			lerp(-4.0, 4.0, float(i) / max(1, cards.size() - 1)),
+			0.12
+		)
+	# Toast message and win progress
+	var col := _slot_assigned_colour(slot)
+	total_sets_done += 1
+	if total_sets_done < 3:
+		var remaining = max(3 - total_sets_done, 0)
+		var remaining_msg := "  %d set%s left to win!" % [remaining, ("" if remaining == 1 else "s")]
+		_toast("%s Set Completed!%s" % [col.capitalize(), remaining_msg])
+	else:
+		win()
+		
+func _check_global_win() -> void:
+	if total_sets_done >= 3:
+		win()
+
+# -----------------------------
+# UI helpers
+# -----------------------------
+func _toast(msg: String) -> void:
+	var label: Label = $"../MessageLabel" as Label
+	if not is_instance_valid(label):
+		return
+	label.text = msg
+	label.visible = true
+	label.modulate.a = 1.0
+	label.scale = Vector2(0.9, 0.9)
+	var t := create_tween()
+	t.tween_property(label, "scale", Vector2(1, 1), 0.18)
+	t.tween_property(label, "modulate:a", 0.0, 2.0).set_delay(0.6)
+	t.tween_callback(func(): label.visible = false)
+
+func _reject_to_hand_with_reason(card: Node2D, slot: Node) -> void:
+	var assigned := _slot_assigned_colour(slot)
+	if assigned == "":
+		_toast("This box is already complete.")
+	else:
+		_toast("This box is reserved for %s." % assigned.capitalize())
+	var shape := card.get_node("Area2D/CollisionShape2D") as CollisionShape2D
+	if shape: shape.disabled = false
+	player_hand_reference.add_card_to_hand(card, DEFAULT_CARD_MOVE_SPEED)
+
 func max_cards_played_popup() -> void:
-	var popup = Label.new()
+	var popup := Label.new()
 	popup.text = "You can only play three cards per turn!"
-	popup.add_theme_color_override("font_color", Color.RED)
+	popup.add_theme_color_override("font_color", Color.WHITE)
 	popup.add_theme_font_size_override("font_size", 40)
 	popup.modulate = Color(1, 1, 1, 0)
 	popup.position = Vector2(800, 540)
 	popup.z_index = 999
 	get_tree().current_scene.add_child(popup)
-	var tween = get_tree().create_tween()
+	var tween := get_tree().create_tween()
 	tween.tween_property(popup, "modulate:a", 1.0, 0.3)
 	tween.tween_interval(1.5)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.5)
 	await tween.finished
 	popup.queue_free()
 
-func newTurn():
-	cards_played_this_turn = 0
-
-func connect_card_signals(card):
-	card.connect("hovered", on_hovered_over_card)
-	card.connect("hovered_off", on_hovered_off_card)
-	card.scale = Vector2(DEFAULT_CARD_SCALE, DEFAULT_CARD_SCALE)  
-	card.z_index = 1 
-
-func check_win():
-	var counter := 0
-	# 1) First pass: count completed sets
-	for col in cardDbRef.COLOURS:
-		if cardDbRef.COLOURS[col] <= 0:
-			counter += 1
-	# 2) Second pass: announce any *newly* completed colours and show "sets left"
-	for col in cardDbRef.COLOURS:
-		if cardDbRef.COLOURS[col] <= 0 and not announced_sets.get(col, false):
-			announced_sets[col] = true
-			var remaining: int = max(3 - counter, 0)
-			var info_label := $"../MessageLabel"
-			info_label.text = "%s Set Completed!  %d set%s left to win!" % [
-				col,
-				remaining,
-				("s" if remaining != 1 else "")
-			]
-			info_label.visible = true
-			info_label.modulate.a = 1.0
-			var t := create_tween()
-			t.tween_property(info_label, "modulate:a", 0.0, 2.0).set_delay(0.5)
-			t.tween_callback(func(): info_label.visible = false)
-	# 3) Win check
-	if counter >= 3:
-		win()
-
-func win():
+func win() -> void:
 	$"../winLabel".visible = true
-	#$"../horribleSpaghetti".visible = true
 	playing = false
 
-func on_left_click_released():
+# -----------------------------
+# Hover visuals
+# -----------------------------
+func connect_card_signals(card) -> void:
+	card.connect("hovered", on_hovered_over_card)
+	card.connect("hovered_off", on_hovered_off_card)
+	card.scale = Vector2(DEFAULT_CARD_SCALE, DEFAULT_CARD_SCALE)
+	card.z_index = 1
+
+func on_hovered_over_card(card: Node2D) -> void:
+	if card.card_slot_card_in_slot:
+		return
+	if not is_hovering_on_card:
+		is_hovering_on_card = true
+	card.z_as_relative = false
+	card.z_index = 5000
+	card.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
+
+func on_hovered_off_card(card: Node2D) -> void:
+	if card.card_slot_card_in_slot or card_being_dragged:
+		return
+	card.z_as_relative = false
+	card.z_index = 1
+	card.scale = Vector2(DEFAULT_CARD_SCALE, DEFAULT_CARD_SCALE)
+	is_hovering_on_card = false
+
+# -----------------------------
+# Utilities & Raycasts
+# -----------------------------
+func _normalize_colour(raw: String) -> String:
+	var s := raw.strip_edges().to_lower()
+	# Exact DB key
+	for key in cardDbRef.COLOURS.keys():
+		var k := str(key).to_lower()
+		if s == k:
+			return k
+	# Common aliases
+	if s == "dark blue" or s == "dark_blue" or s == "blue(dark)":
+		return "dblue"
+	# Fallback: contains
+	for key in cardDbRef.COLOURS.keys():
+		var k2 := str(key).to_lower()
+		if s.findn(k2) != -1:
+			return k2
+	return s
+
+func _reparent_keep_global(node: Node2D, new_parent: Node) -> void:
+	var gp: Vector2 = node.global_position
+	var old: Node = node.get_parent()
+	if old:
+		old.remove_child(node)
+	new_parent.add_child(node)
+	node.global_position = gp
+
+func on_left_click_released() -> void:
 	if card_being_dragged:
 		finish_drag()
 
-func on_hovered_over_card(card):
-	if !is_hovering_on_card:
-		is_hovering_on_card = true
-		highlight_card(card, true)
-	
-func on_hovered_off_card(card):
-	#check if card is in a slot and not being dragged
-	if !card.card_slot_card_in_slot && !card_being_dragged:
-		#if not dragging
-		highlight_card(card, false)
-		#check if hovered off card straight on to another card
-		var new_card_hovered = raycast_check_for_card()
-		if new_card_hovered:
-			highlight_card(new_card_hovered, true)
-		else:
-			is_hovering_on_card = false
-	
-func highlight_card(card, hovered):
-	if card.card_slot_card_in_slot:
-		return
-	if hovered:
-		card.scale = Vector2(CARD_BIGGER_SCALE,CARD_BIGGER_SCALE)
-		card.z_index = 2
-	else:
-		card.scale = Vector2(DEFAULT_CARD_SCALE,DEFAULT_CARD_SCALE)
-		card.z_index = 1
-	
-func raycast_check_for_card_slot():
-	var space_state = get_world_2d().direct_space_state
-	var parameters = PhysicsPointQueryParameters2D.new()
+func raycast_check_for_card_slot() -> Node:
+	var space_state := get_world_2d().direct_space_state
+	var parameters := PhysicsPointQueryParameters2D.new()
 	parameters.position = get_global_mouse_position()
 	parameters.collide_with_areas = true
-	parameters.collision_mask = COLLISION_MASK_CARD_SLOT  # This should be 2
-	var result = space_state.intersect_point(parameters)
+	parameters.collision_mask = COLLISION_MASK_CARD_SLOT
+	var result: Array = space_state.intersect_point(parameters)
 	if result.size() > 0:
 		return result[0].collider.get_parent()
 	return null
-	
-func raycast_check_for_card():
-	# pulled from godot documentation
-	var space_state = get_world_2d().direct_space_state
-	var parameters = PhysicsPointQueryParameters2D.new()
-	parameters.position = get_global_mouse_position()
-	parameters.collide_with_areas = true
-	parameters.collision_mask = COLLISION_MASK_CARD
-	var result = space_state.intersect_point(parameters)
-	if result.size() > 0:
-		return get_card_with_highest_z_index(result)
-	return null
-	
-func raycast_check_for_bank_pile():
-	var space_state = get_world_2d().direct_space_state
-	var params = PhysicsPointQueryParameters2D.new()
+
+func raycast_check_for_bank_pile() -> Node:
+	var space_state := get_world_2d().direct_space_state
+	var params := PhysicsPointQueryParameters2D.new()
 	params.position = get_global_mouse_position()
 	params.collide_with_areas = true
-	# keep bank collision mask here (ensure Bank uses this layer)
-	params.collision_mask = 4
-	var result = space_state.intersect_point(params)
+	params.collision_mask = 4  # bank mask; ensure the Bank Area2D is on layer 4
+	var result: Array = space_state.intersect_point(params)
 	if result.size() == 0:
 		return null
-	# loop through all hits and find a parent that implements add_card_to_bank
 	for i in range(result.size()):
 		var collider = result[i].collider
 		if collider == null:
 			continue
-		var node = collider.get_parent()  # often Area2D's parent
-		# climb parents to find an appropriate node (safety: stop at scene root)
+		var node: Node = collider.get_parent()
 		while node:
 			if node.has_method("add_card_to_bank"):
 				return node
-			# stop if we've reached the scene root (avoid infinite loop)
 			if node == get_tree().current_scene:
 				break
 			node = node.get_parent()
 	return null
-	
-func get_card_with_highest_z_index(cards):
-	var highest_z_card = cards[0].collider.get_parent()
-	var highest_z_index = highest_z_card.z_index
-
-	for i in range(1, cards.size()):
-		var current_card = cards[i].collider.get_parent()
-		if current_card.z_index > highest_z_index:
-			highest_z_card = current_card
-			highest_z_index = current_card.z_index
-	return highest_z_card
