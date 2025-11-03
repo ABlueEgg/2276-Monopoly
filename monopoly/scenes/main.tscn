@@ -22,6 +22,7 @@ script = ExtResource("1_27x0l")
 z_index = -3
 position = Vector2(320, 750)
 scale = Vector2(0.6, 0.6)
+script = null
 
 [node name="CardSlot2" parent="CardSlots" instance=ExtResource("3_06dlb")]
 z_index = -3
@@ -239,6 +240,13 @@ offset_top = 411.0
 offset_right = 1215.0
 offset_bottom = 466.0
 theme_override_font_sizes/font_size = 35
+
+[node name="TurnTimer" type="Timer" parent="."]
+one_shot = true
+
+[node name="TurnLabel" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
 
 [connection signal="pressed" from="EndTurnButton" to="." method="_on_end_turn_button_pressed"]
 [connection signal="pressed" from="EndGameButton" to="." method="_on_end_game_button_pressed"]

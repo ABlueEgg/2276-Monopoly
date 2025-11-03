@@ -21,11 +21,27 @@ var playing: bool = true
 var total_sets_done: int = 0
 var announced_sets := {}
 
+#timer variables
+const turnDuration: float = 30.0
+var timerActive: bool = false
+var turn_timer: Timer
+
 func _ready() -> void:
 	screen_size = get_viewport_rect().size
 	player_hand_reference = $"../PlayerHand"
 	$"../InputManager".connect("left_mouse_button_released", on_left_click_released)
 	cardDbRef = $"../CardDatabase"
+	#start timer to begin the first turn
+	turn_timer = get_node_or_null("../TurnTimer") as Timer
+	if turn_timer == null:
+		turn_timer = Timer.new()
+		turn_timer.one_shot = true
+		add_child(turn_timer)
+	if not turn_timer.timeout.is_connected(_on_TurnTimer_timeout):
+		turn_timer.timeout.connect(_on_TurnTimer_timeout)
+	if has_node("../EndTurnButton") and not $"../EndTurnButton".pressed.is_connected(_on_EndTurnButton_pressed):
+		$"../EndTurnButton".pressed.connect(_on_EndTurnButton_pressed)
+	startTimer()
 
 func _process(_delta: float) -> void:
 	if not playing:
@@ -36,7 +52,46 @@ func _process(_delta: float) -> void:
 			clamp(mouse_pos.x, 0, screen_size.x),
 			clamp(mouse_pos.y, 0, screen_size.y)
 		)
+	if timerActive and is_instance_valid(turn_timer) and has_node("../TurnLabel"):
+		var tl := $"../TurnLabel" as Label
+		tl.text = "Your turn: %ds" % int(ceil(turn_timer.time_left))
+		tl.visible = true
 
+func startTimer() -> void:
+	timerActive = true
+	cards_played_this_turn = 0
+	turn_timer.start(turnDuration)
+
+func endTimer(reason: String = "") -> void:
+	timerActive = false
+	turn_timer.stop()
+	if has_node("../MessageLabel"):
+		var m := $"../MessageLabel" as Label
+		var msg :=  ""
+		match reason:
+			"button": "Turn ended."
+			"timeout": "Time's up!"
+			"three_cards": "Max 3 plays — turn ended."
+			_: "Turn ended."
+		m.text = msg
+		m.visible = true
+		m.modulate.a = 1.0
+		var t := create_tween()
+		t.tween_property(m, "modulate:a", 0.0, 0.4).set_delay(0.6)
+		t.tween_callback(func():
+			m.modulate.a = 1.0
+			m.visible = false
+		)
+	startTimer()
+
+func _on_EndTurnButton_pressed() -> void:
+	if timerActive:
+		endTimer("button")
+
+func _on_TurnTimer_timeout() -> void:
+	if timerActive:
+		endTimer("timeout")
+		
 func start_drag(card: Node2D) -> void:
 	if card.has_method("is_locked_in_set") and card.is_locked_in_set:
 		return
@@ -46,6 +101,8 @@ func start_drag(card: Node2D) -> void:
 	card.scale = Vector2(DEFAULT_CARD_SCALE, DEFAULT_CARD_SCALE)
 
 func finish_drag() -> void:
+	if not timerActive:
+		return
 	if card_being_dragged == null:
 		return
 	var slot = raycast_check_for_card_slot()
@@ -185,6 +242,7 @@ func _finalize_slot_set(slot: Node) -> void:
 		
 func _check_global_win() -> void:
 	if total_sets_done >= 3:
+		endTimer("three_cards")
 		win()
 
 func _toast(msg: String) -> void:
@@ -228,6 +286,9 @@ func max_cards_played_popup() -> void:
 	popup.queue_free()
 
 func win() -> void:
+	if is_instance_valid(turn_timer):
+		turn_timer.stop()
+	timerActive = false
 	$"../winLabel".visible = true
 	playing = false
 
