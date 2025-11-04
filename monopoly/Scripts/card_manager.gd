@@ -108,17 +108,15 @@ func check_win():
 		if cardDbRef.COLOURS[col] <= 0 and not announced_sets.get(col, false):
 			announced_sets[col] = true
 			var remaining: int = max(3 - counter, 0)
-			var info_label := $"../MessageLabel"
-			info_label.text = "%s Set Completed!  %d set%s left to win!" % [
-				col,
-				remaining,
-				("s" if remaining != 1 else "")
-			]
-			info_label.visible = true
-			info_label.modulate.a = 1.0
-			var t := create_tween()
-			t.tween_property(info_label, "modulate:a", 0.0, 2.0).set_delay(0.5)
-			t.tween_callback(func(): info_label.visible = false)
+			#do not show once it gets to zero
+			if remaining > 0:
+				var info_label := $"../MessageLabel"
+				info_label.text = "%s Set Completed!  %d set%s left to win!" % [col,remaining,("s" if remaining != 1 else "")]
+				info_label.visible = true
+				info_label.modulate.a = 1.0
+				var t := create_tween()
+				t.tween_property(info_label, "modulate:a", 0.0, 2.0).set_delay(0.5)
+				t.tween_callback(func(): info_label.visible = false)
 	# 3) Win check
 	if counter >= 3:
 		win()
