@@ -1,5 +1,4 @@
 extends Node2D
-# the image attached to cards is a temp image that can be changed later
 
 const COLLISION_MASK_CARD = 1
 const COLLISION_MASK_CARD_SLOT = 2
@@ -11,20 +10,29 @@ const CARD_SMALLER_SCALE = 0.6
 var screen_size
 var card_being_dragged
 var is_hovering_on_card
-var player_hand_reference
+var player_hand_ref
 var played_card
-var cardDbRef 
-var cards_played_this_turn = 0
+var card_Db_Ref 
+var cards_played_this_turn 
 
+var can_play_cards = true
 var playing = true
 var announced_sets := {}
+
+func set_cards_playable(playable: bool) -> void:
+	for card in get_children():
+		# Look for the collider inside each card
+		var collider = card.get_node_or_null("Area2D/CollisionShape2D")
+		if collider:
+			collider.disabled = not playable
 # Called when the node enters the scene tree for the first time.
 #this function makes sure the cards cant go off screen
 func _ready() -> void:
 	screen_size = get_viewport_rect().size
-	player_hand_reference = $"../PlayerHand"
+	player_hand_ref = $"../PlayerHand"
 	$"../InputManager".connect("left_mouse_button_released", on_left_click_released)
-	cardDbRef = $"../CardDatabase"
+	card_Db_Ref = $"../CardDatabase"
+	newTurn()
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -38,9 +46,16 @@ func _process(delta: float) -> void:
 func start_drag(card):
 	card_being_dragged = card
 	card.scale = Vector2(DEFAULT_CARD_SCALE,DEFAULT_CARD_SCALE)
+	$"../Deck".draw_cards_at_turn_start()
 	
 func finish_drag():
 	if card_being_dragged == null:
+		return
+	if not can_play_cards:
+		print("You must draw 2 cards before playing!")
+		player_hand_ref.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
+		card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
+		card_being_dragged = null
 		return
 	var card_slot_found = raycast_check_for_card_slot()
 	var bank_pile_found = raycast_check_for_bank_pile()
@@ -48,30 +63,31 @@ func finish_drag():
 		# Card dropped in a valid empty slot
 		card_being_dragged.scale = Vector2(CARD_SMALLER_SCALE, CARD_SMALLER_SCALE)
 		card_being_dragged.z_index = -1
-		card_being_dragged.card_slot_card_in_slot = card_slot_found
-		player_hand_reference.remove_card_from_hand(card_being_dragged)
+		card_being_dragged.card_in_slot = card_slot_found
+		player_hand_ref.remove_card_from_hand(card_being_dragged)
 		card_being_dragged.position = card_slot_found.position
 		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = true
 		card_slot_found.card_in_slot = true
 		var col = card_being_dragged.get_colour()
-		if cardDbRef.COLOURS.has(col):
-			cardDbRef.COLOURS[col] -= 1
-			print(col,"now at",cardDbRef.COLOURS[col])
+		if card_Db_Ref.COLOURS.has(col):
+			card_Db_Ref.COLOURS[col] -= 1
+			print(col," now at ",card_Db_Ref.COLOURS[col])
 		check_win()
 		cards_played_this_turn += 1
 	elif bank_pile_found and cards_played_this_turn < 3:
 		bank_pile_found.add_card_to_bank(card_being_dragged)
-		player_hand_reference.remove_card_from_hand(card_being_dragged)
+		player_hand_ref.remove_card_from_hand(card_being_dragged)
 		cards_played_this_turn += 1
 	else:
 		# Return card to player's hand
 		if cards_played_this_turn >= 3:
 			max_cards_played_popup()
 		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = false
-		player_hand_reference.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
+		player_hand_ref.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
 	card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
 	card_being_dragged = null
 			
+
 func max_cards_played_popup() -> void:
 	var popup = Label.new()
 	popup.text = "You can only play three cards per turn!"
@@ -100,12 +116,12 @@ func connect_card_signals(card):
 func check_win():
 	var counter := 0
 	# 1) First pass: count completed sets
-	for col in cardDbRef.COLOURS:
-		if cardDbRef.COLOURS[col] <= 0:
+	for col in card_Db_Ref.COLOURS:
+		if card_Db_Ref.COLOURS[col] <= 0:
 			counter += 1
 	# 2) Second pass: announce any *newly* completed colours and show "sets left"
-	for col in cardDbRef.COLOURS:
-		if cardDbRef.COLOURS[col] <= 0 and not announced_sets.get(col, false):
+	for col in card_Db_Ref.COLOURS:
+		if card_Db_Ref.COLOURS[col] <= 0 and not announced_sets.get(col, false):
 			announced_sets[col] = true
 			var remaining: int = max(3 - counter, 0)
 			#do not show once it gets to zero
@@ -137,7 +153,7 @@ func on_hovered_over_card(card):
 	
 func on_hovered_off_card(card):
 	#check if card is in a slot and not being dragged
-	if !card.card_slot_card_in_slot && !card_being_dragged:
+	if !card.card_in_slot && !card_being_dragged:
 		#if not dragging
 		highlight_card(card, false)
 		#check if hovered off card straight on to another card
@@ -148,7 +164,7 @@ func on_hovered_off_card(card):
 			is_hovering_on_card = false
 	
 func highlight_card(card, hovered):
-	if card.card_slot_card_in_slot:
+	if card.card_in_slot:
 		return
 	if hovered:
 		card.scale = Vector2(CARD_BIGGER_SCALE,CARD_BIGGER_SCALE)
@@ -216,3 +232,4 @@ func get_card_with_highest_z_index(cards):
 			highest_z_card = current_card
 			highest_z_index = current_card.z_index
 	return highest_z_card
+	
