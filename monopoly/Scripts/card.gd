@@ -4,7 +4,7 @@ signal hovered
 signal hovered_off
 
 var position_in_hand
-var card_slot_card_in_slot
+var card_in_slot
 var cardValue 
 var cardColour 
 

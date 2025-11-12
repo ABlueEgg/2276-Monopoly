@@ -9,13 +9,13 @@ const MAX_CARDS_PER_TURN = 2
 var player_deck = ["R_KentuckyAve", "R_Illinois","DB_ParkPlace", "Y_AtlanticAve", 
 "G_PacificAve","G_NorthCarolinaAve", "R_IndianaAve", "Y_MarvinGardens",
 "Y_VentnorAve", "G_PennsylvaniaAve", "DB_BroadWalk"]
-var card_database_reference
+var card_DB_ref
 var cards_drawn_this_turn := 0
 var initialized := false  # prevent multiple starts
 
 func _ready() -> void:
 	# Load card database once
-	card_database_reference = $"../CardDatabase"
+	card_DB_ref = $"../CardDatabase"
 	# Hide deck visuals until the player starts the game
 	set_deck_visible(false)
 	update_deck_label()
@@ -66,7 +66,7 @@ func draw_card(force_draw := false) -> void:
 	var card_scene = preload(CARD_SCENE_PATH)
 	var new_card = card_scene.instantiate()
 	new_card.name = "Card"
-	var card_data = card_database_reference.CARDS[card_drawn_name]
+	var card_data = card_DB_ref.CARDS[card_drawn_name]
 	new_card.setup(card_data[0], card_data[1])
 	var card_image_node = new_card.get_node_or_null("Card_Image")
 	if card_image_node:
@@ -80,10 +80,21 @@ func draw_card(force_draw := false) -> void:
 	var anim_player = new_card.get_node_or_null("AnimationPlayer")
 	if anim_player:
 		anim_player.play("card_flip")
+	draw_cards_at_turn_start()
 
 func start_new_turn() -> void:
 	cards_drawn_this_turn = 0
 	$"../CardManager".newTurn()
+	
+func draw_cards_at_turn_start() -> void:
+	var card_manager = get_node("../CardManager")
+	if cards_drawn_this_turn < 2:
+		$"../DrawCardsWarning".visible = true
+		card_manager.can_play_cards = false
+	else:
+		$"../DrawCardsWarning".visible = false
+		card_manager.can_play_cards = true
+
 
 func show_max_card_popup() -> void:
 	var popup = Label.new()
