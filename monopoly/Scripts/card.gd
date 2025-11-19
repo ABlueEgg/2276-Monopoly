@@ -7,7 +7,6 @@ var position_in_hand
 var card_in_slot
 var cardValue 
 var cardColour 
-
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
 	#all cards must be a child of cardmanager or this errors
