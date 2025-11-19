@@ -6,6 +6,8 @@ const DEFAULT_CARD_MOVE_SPEED = 0.1
 const DEFAULT_CARD_SCALE = 0.8
 const CARD_BIGGER_SCALE = 0.85
 const CARD_SMALLER_SCALE = 0.6
+const SLOT_OFFSET:=Vector2(18,-2)
+const SLOT_Z_BASE:=200
 
 var screen_size
 var card_being_dragged
@@ -54,7 +56,7 @@ func _process(delta: float) -> void:
 		card_being_dragged.position = Vector2(clamp(mouse_pos.x, 0, screen_size.x),
 		clamp(mouse_pos.y, 0, screen_size.y))
 	if timer_active and is_instance_valid(turn_timer):
-		var tl := $"../TimerLabel" as Label   # 直接拿兄弟节点
+		var tl := $"../TimerLabel" as Label 
 		if tl:
 			tl.text = "Your turn: %ds" % int(ceil(turn_timer.time_left))
 			tl.visible = true
@@ -89,36 +91,36 @@ func finish_drag():
 		card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
 		card_being_dragged = null
 		return
-	var card_slot_found = raycast_check_for_card_slot()
-	var bank_pile_found = raycast_check_for_bank_pile()
-	if card_slot_found and not card_slot_found.card_in_slot and cards_played_this_turn < 3:
-		# Card dropped in a valid empty slot
-		card_being_dragged.scale = Vector2(CARD_SMALLER_SCALE, CARD_SMALLER_SCALE)
-		card_being_dragged.z_index = -1
-		card_being_dragged.card_in_slot = card_slot_found
-		player_hand_ref.remove_card_from_hand(card_being_dragged)
-		card_being_dragged.position = card_slot_found.position
-		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = true
-		card_slot_found.card_in_slot = true
-		var col = card_being_dragged.get_colour()
-		if card_Db_Ref.COLOURS.has(col):
-			card_Db_Ref.COLOURS[col] -= 1
-			print(col," now at ",card_Db_Ref.COLOURS[col])
-		check_win()
-		cards_played_this_turn += 1
-	elif bank_pile_found and cards_played_this_turn < 3:
-		bank_pile_found.add_card_to_bank(card_being_dragged)
+	var slot: Node = raycast_check_for_card_slot()
+	var bank_pile: Node = raycast_check_for_bank_pile()
+	if slot and cards_played_this_turn < 3:
+		var col := _normalize_colour(str(card_being_dragged.get_colour()))
+	if slot and cards_played_this_turn < 3:
+		var col := _normalize_colour(str(card_being_dragged.get_colour()))
+		if _slot_can_accept(slot, col):
+			_place_card_into_slot(slot, card_being_dragged, col)
+			player_hand_ref.remove_card_from_hand(card_being_dragged)
+			if card_Db_Ref.COLOURS.has(col):
+				card_Db_Ref.COLOURS[col] -= 1
+				print(col, " now at ", card_Db_Ref.COLOURS[col])
+			check_win()
+			cards_played_this_turn += 1
+		else:
+			_reject_to_hand_with_reason(card_being_dragged, slot)
+	elif bank_pile and cards_played_this_turn < 3:
+		bank_pile.add_card_to_bank(card_being_dragged)
 		player_hand_ref.remove_card_from_hand(card_being_dragged)
 		cards_played_this_turn += 1
 	else:
-		# Return card to player's hand
 		if cards_played_this_turn >= 3:
 			max_cards_played_popup()
-		card_being_dragged.get_node("Area2D/CollisionShape2D").disabled = false
+		var shape := card_being_dragged.get_node("Area2D/CollisionShape2D") as CollisionShape2D
+		if shape:
+			shape.disabled = false
 		player_hand_ref.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
-	card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
+	if is_instance_valid(card_being_dragged):
+		card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
 	card_being_dragged = null
-			
 
 func max_cards_played_popup() -> void:
 	var popup = Label.new()
@@ -139,6 +141,82 @@ func max_cards_played_popup() -> void:
 func newTurn():
 	cards_played_this_turn = 0
 
+func _ensure_slot_data(slot: Node) -> void:
+	if not slot.has_meta("assigned_colour"):
+		slot.set_meta("assigned_colour", "")
+	if not slot.has_meta("cards_in_box"):
+		slot.set_meta("cards_in_box", [])
+
+func _slot_assigned_colour(slot: Node) -> String:
+	_ensure_slot_data(slot)
+	return String(slot.get_meta("assigned_colour"))
+
+func _slot_cards(slot: Node) -> Array:
+	_ensure_slot_data(slot)
+	return slot.get_meta("cards_in_box") as Array
+
+func _slot_set_assigned(slot: Node, col: String) -> void:
+	slot.set_meta("assigned_colour", col)
+
+func _slot_can_accept(slot: Node, col: String) -> bool:
+	_ensure_slot_data(slot)
+	var assigned := _slot_assigned_colour(slot)
+	if assigned == "":
+		return true
+	return assigned == col
+
+func _place_card_into_slot(slot: Node2D, card: Node2D, col: String) -> void:
+	_ensure_slot_data(slot)
+	if _slot_assigned_colour(slot) == "":
+		_slot_set_assigned(slot, col)
+	if _slot_assigned_colour(slot) != col:
+		return
+	var shape := card.get_node("Area2D/CollisionShape2D") as CollisionShape2D
+	if shape:
+		shape.disabled = true
+	_reparent_keep_global(card, slot.get_parent())
+	card.z_as_relative = false
+	var cards := _slot_cards(slot)
+	var index := cards.size()
+	card.scale = Vector2(CARD_SMALLER_SCALE, CARD_SMALLER_SCALE)
+	card.z_index = SLOT_Z_BASE + index
+	var target_pos := slot.position + SLOT_OFFSET * index
+	var t := create_tween()
+	t.tween_property(card, "position", target_pos, 0.18)
+	cards.append(card)
+	slot.set_meta("cards_in_box", cards)
+	card.card_in_slot = slot
+
+func _reparent_keep_global(node: Node2D, new_parent: Node) -> void:
+	var gp := node.global_position
+	var old_parent := node.get_parent()
+	if old_parent:
+		old_parent.remove_child(node)
+	new_parent.add_child(node)
+	node.global_position = gp
+
+func _reject_to_hand_with_reason(card: Node2D, slot: Node) -> void:
+	var assigned := ""
+	if slot and slot.has_meta("assigned_colour"):
+		assigned = String(slot.get_meta("assigned_colour"))
+	var msg := ""
+	if assigned == "":
+		msg = "This box is already complete."
+	else:
+		msg = "This box is reserved for %s." % assigned.capitalize()
+	if has_node("../MessageLabel"):
+		var label := $"../MessageLabel" as Label
+		label.text = msg
+		label.visible = true
+		label.modulate.a = 1.0
+		var t := create_tween()
+		t.tween_property(label, "modulate:a", 0.0, 2.0).set_delay(0.5)
+		t.tween_callback(func(): label.visible = false)
+	var shape := card.get_node("Area2D/CollisionShape2D") as CollisionShape2D
+	if shape:
+		shape.disabled = false
+	player_hand_ref.add_card_to_hand(card, DEFAULT_CARD_MOVE_SPEED)
+	
 func connect_card_signals(card):
 	card.connect("hovered", on_hovered_over_card)
 	card.connect("hovered_off", on_hovered_off_card)
@@ -268,3 +346,17 @@ func get_card_with_highest_z_index(cards):
 func _on_end_turn_button_pressed() -> void:
 	if timer_active:
 		end_turn("button")
+
+func _normalize_colour(raw: String) -> String:
+	var s := raw.strip_edges().to_lower()
+	for key in card_Db_Ref.COLOURS.keys():
+		var k := str(key).to_lower()
+		if s == k:
+			return k
+	if s == "dark blue" or s == "dark_blue" or s == "blue(dark)":
+		return "dblue"
+	for key in card_Db_Ref.COLOURS.keys():
+		var k2 := str(key).to_lower()
+		if s.findn(k2) != -1:
+			return k2
+	return s
