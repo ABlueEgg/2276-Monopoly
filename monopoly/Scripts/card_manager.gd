@@ -18,6 +18,9 @@ var cards_played_this_turn
 var can_play_cards = true
 var playing = true
 var announced_sets := {}
+const TURN_DURATION := 30.0
+var timer_active := false
+var turn_timer: Timer
 
 func set_cards_playable(playable: bool) -> void:
 	for card in get_children():
@@ -33,6 +36,14 @@ func _ready() -> void:
 	$"../InputManager".connect("left_mouse_button_released", on_left_click_released)
 	card_Db_Ref = $"../CardDatabase"
 	newTurn()
+	turn_timer = $"../TurnTimer"
+	if turn_timer == null:
+		push_error("TurnTimer node not found!")
+		return
+	turn_timer.one_shot = true
+	if not turn_timer.timeout.is_connected(_on_turn_timer_timeout):
+		turn_timer.timeout.connect(_on_turn_timer_timeout)
+	start_turn()
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -42,6 +53,25 @@ func _process(delta: float) -> void:
 		var mouse_pos = get_global_mouse_position()
 		card_being_dragged.position = Vector2(clamp(mouse_pos.x, 0, screen_size.x),
 		clamp(mouse_pos.y, 0, screen_size.y))
+	if timer_active and is_instance_valid(turn_timer):
+		var tl := $"../TimerLabel" as Label   # 直接拿兄弟节点
+		if tl:
+			tl.text = "Your turn: %ds" % int(ceil(turn_timer.time_left))
+			tl.visible = true
+		
+func start_turn() -> void:
+	timer_active = true
+	cards_played_this_turn = 0
+	turn_timer.start(TURN_DURATION)
+
+func end_turn(reason: String = "") -> void:
+	timer_active = false
+	turn_timer.stop()
+	start_turn()
+	
+func _on_turn_timer_timeout() -> void:
+	if timer_active:
+		end_turn("timeout")
 
 func start_drag(card):
 	card_being_dragged = card
@@ -50,6 +80,8 @@ func start_drag(card):
 	
 func finish_drag():
 	if card_being_dragged == null:
+		return
+	if not timer_active:
 		return
 	if not can_play_cards:
 		print("You must draw 2 cards before playing!")
@@ -232,4 +264,7 @@ func get_card_with_highest_z_index(cards):
 			highest_z_card = current_card
 			highest_z_index = current_card.z_index
 	return highest_z_card
-	
+
+func _on_end_turn_button_pressed() -> void:
+	if timer_active:
+		end_turn("button")

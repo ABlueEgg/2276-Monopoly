@@ -270,5 +270,12 @@ grow_vertical = 2
 theme_override_font_sizes/font_size = 40
 text = "You need to draw 2 cards to start your turn!"
 
+[node name="TurnTimer" type="Timer" parent="."]
+
+[node name="TimerLabel" type="Label" parent="."]
+offset_right = 40.0
+offset_bottom = 23.0
+
 [connection signal="pressed" from="EndTurnButton" to="." method="_on_end_turn_button_pressed"]
+[connection signal="pressed" from="EndTurnButton" to="CardManager" method="_on_end_turn_button_pressed"]
 [connection signal="pressed" from="EndGameButton" to="." method="_on_end_game_button_pressed"]
