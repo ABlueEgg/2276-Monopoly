@@ -91,6 +91,7 @@ func _on_turn_timer_timeout() -> void:
 func start_drag(card):
 	card_being_dragged = card
 	card.scale = Vector2(DEFAULT_CARD_SCALE,DEFAULT_CARD_SCALE)
+	card.z_index = 999
 	$"../Deck".draw_cards_at_turn_start()
 	
 func finish_drag():
@@ -133,6 +134,8 @@ func finish_drag():
 		player_hand_ref.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
 	if is_instance_valid(card_being_dragged):
 		card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
+		if card_being_dragged.card_in_slot:
+			card_being_dragged.z_index = SLOT_Z_BASE + _slot_cards(card_being_dragged.card_in_slot).size()-1
 	card_being_dragged = null
 
 func max_cards_played_popup() -> void:
