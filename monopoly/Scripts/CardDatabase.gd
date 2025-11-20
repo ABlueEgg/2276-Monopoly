@@ -2,8 +2,7 @@ extends Node2D
 
 const CARDS = { 
 
-	#first value is attack and second value is health
-	#we can modify it with color and value later
+	#Format is value of the card and color of the card.
 	"DB_ParkPlace": [4,"dblue"],
 	"DB_BroadWalk": [4,"dblue"],
 	"R_KentuckyAve": [3,"red"],
@@ -31,8 +30,22 @@ const CARDS = {
 	"O_StJamesPlace":[2,"orange"],
 	"O_TennAve":[2,"orange"],
 	"B_BalticAve":[1,"brown"],
-	"B_MediAve":[1,"brown"]
-	
+	"B_MediAve":[1,"brown"],
+	#Action cards
+	"AC_PassGo":[1,"action"], # draw 2 cards
+	"AC_DealBreaker":[5,"action"], # steal full set
+	"AC_JustSayNo":[4,"action"], #cancel action
+	"AC_SlyDeal":[3, "action"], #steal single property
+	"AC_ForcedDeal": [3, "action"], #swap properties
+	"AC_DebtCollector":[3, "action"], # ask 5M from everyone
+	"AC_Birthday":[2,"action"], # Ask 2M from everyone
+	"AC_Rent_Generic":[1,"rent"], # charge rent on any color
+	"AC_Rent_BlueGreen":[1,"rent"], # charge rent on blue/green
+	"Money_10M":[10,"money"],
+	"Money_5M":[5,"money"],
+	"Money_3M":[3,"money"],
+	"Money_2M":[2,"money"],
+	"Money_1M":[1,"money"]
 }
 
 var COLOURS = { 
@@ -48,5 +61,8 @@ var COLOURS = {
 	"pink":3,
 	"orange":3,
 	"brown": 2
-	
 }
+func is_property(card_name: String) -> bool:
+	if not CARDS.has(card_name): return false
+	var type = CARDS[card_name][1]
+	return type != "action" and type != "money" and type != "rent"
