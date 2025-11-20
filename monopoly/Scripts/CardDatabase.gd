@@ -14,7 +14,24 @@ const CARDS = {
 	"G_PennsylvaniaAve":[4,"green"],
 	"Y_AtlanticAve":[3,"yellow"],
 	"Y_MarvinGardens":[3,"yellow"],
-	"Y_VentnorAve":[3,"yellow"]
+	"Y_VentnorAve":[3,"yellow"],
+	"U_WaterWorks":[2,"utility"],
+	"U_ElectricCompany":[2,"utility"],
+	"RR_BNO":[2,"Railroad"],
+	"RR_Penns":[2,"Railroad"],
+	"RR_ShortLine":[2,"Railroad"],
+	"RR_Reading":[2,"Railroad"],
+	"LB_ConnectAve":[1, "lightblue"],
+	"LB_OrientalAve":[1, "lightblue"],
+	"LB_VermontAve":[1, "lightblue"],
+	"P_StatesAve":[2,"pink"],
+	"P_StCharlesPlace":[2,"pink"],
+	"P_VirginiaAve":[2,"pink"],
+	"O_NewYorkAve":[2,"orange"],
+	"O_StJamesPlace":[2,"orange"],
+	"O_TennAve":[2,"orange"],
+	"B_BalticAve":[1,"brown"],
+	"B_MediAve":[1,"brown"]
 	
 }
 
@@ -24,6 +41,12 @@ var COLOURS = {
 	"red": 3,
 	"dblue": 2,
 	"green": 3,
-	"yellow": 3
+	"yellow": 3,
+	"utility":2,
+	"Railroad":4,
+	"lightblue":3,
+	"pink":3,
+	"orange":3,
+	"brown": 2
 	
 }
