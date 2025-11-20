@@ -16,7 +16,7 @@ var player_hand_ref
 var played_card
 var card_Db_Ref 
 var cards_played_this_turn 
-
+var timer_enabled := true
 var can_play_cards = true
 var playing = true
 var announced_sets := {}
@@ -38,6 +38,7 @@ func _ready() -> void:
 	$"../InputManager".connect("left_mouse_button_released", on_left_click_released)
 	card_Db_Ref = $"../CardDatabase"
 	newTurn()
+	$"../TimerLabel".visible = false
 	turn_timer = $"../TurnTimer"
 	if turn_timer == null:
 		push_error("TurnTimer node not found!")
@@ -45,7 +46,6 @@ func _ready() -> void:
 	turn_timer.one_shot = true
 	if not turn_timer.timeout.is_connected(_on_turn_timer_timeout):
 		turn_timer.timeout.connect(_on_turn_timer_timeout)
-	start_turn()
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -69,6 +69,19 @@ func start_turn() -> void:
 func end_turn(reason: String = "") -> void:
 	timer_active = false
 	turn_timer.stop()
+	var msg := "Your turn ended! Starting new turn..."
+	var label = $"../MessageLabel" as Label
+	if label:
+		label.text = msg
+		label.visible = true
+		label.modulate = Color(1,1,1,1)
+		var t = create_tween()
+		for i in range(3):
+			t.tween_property(label, "self_modulate", Color(1,0,0,1), 0.2) # red
+			t.tween_property(label, "self_modulate", Color(1,1,1,1), 0.2) # back to white
+		t.tween_property(label, "modulate:a", 0.0, 1.0).set_delay(0.3)
+		await t.finished
+		label.visible = false
 	start_turn()
 	
 func _on_turn_timer_timeout() -> void:
@@ -360,3 +373,12 @@ func _normalize_colour(raw: String) -> String:
 		if s.findn(k2) != -1:
 			return k2
 	return s
+
+func _begin_game_turn():
+	if not timer_enabled:
+		timer_active = false
+		return  # skip starting the timer
+	if $"../TimerLabel":
+		$"../TimerLabel".visible = true
+	start_turn()
+	

@@ -128,11 +128,44 @@ scale = Vector2(2, 2)
 text = "0"
 metadata/_edit_use_anchors_ = true
 
+[node name="InputManager" type="Node2D" parent="."]
+position = Vector2(1.52588e-05, 6.10352e-05)
+scale = Vector2(1, 1)
+script = ExtResource("6_8wrfk")
+
+[node name="CardDatabase" type="Node2D" parent="."]
+position = Vector2(1.52588e-05, 6.10352e-05)
+scale = Vector2(1, 1)
+script = ExtResource("9_2n8ul")
+
+[node name="TimerPrompt" type="Label" parent="."]
+visible = false
+offset_left = 424.0
+offset_top = 397.0
+offset_right = 1914.0
+offset_bottom = 490.0
+theme_override_font_sizes/font_size = 50
+text = "Would you like to play with turn timer? (Turns are 30 seconds)"
+
+[node name="yes" type="Button" parent="TimerPrompt"]
+offset_left = 476.0
+offset_top = 103.0
+offset_right = 576.0
+offset_bottom = 202.0
+theme_override_font_sizes/font_size = 40
+text = "Yes"
+
+[node name="no" type="Button" parent="TimerPrompt"]
+offset_left = 821.0
+offset_top = 103.0
+offset_right = 920.0
+offset_bottom = 203.0
+theme_override_font_sizes/font_size = 40
+text = "No"
+
 [node name="RulesPrompt" type="CanvasLayer" parent="."]
 
 [node name="Panel" type="Panel" parent="RulesPrompt"]
-offset_right = 40.0
-offset_bottom = 40.0
 
 [node name="Label" type="Label" parent="RulesPrompt/Panel"]
 layout_mode = 0
@@ -163,30 +196,29 @@ text = "No"
 
 [node name="RulesText" type="RichTextLabel" parent="RulesPrompt"]
 visible = false
-offset_left = 418.0
-offset_top = 14.0
-offset_right = 1897.0
-offset_bottom = 638.0
+offset_left = 1937.0
+offset_top = 36.0
+offset_right = 3416.0
+offset_bottom = 1346.0
 theme_override_font_sizes/normal_font_size = 40
 
 [node name="StartGameButton" type="Button" parent="RulesPrompt"]
-anchors_preset = 7
+visible = false
+anchors_preset = 8
 anchor_left = 0.5
-anchor_top = 1.0
+anchor_top = 0.5
 anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -113.0
-offset_top = -63.0
-offset_right = 113.0
+anchor_bottom = 0.5
+offset_left = -797.0
+offset_top = -513.0
+offset_right = -571.0
+offset_bottom = -450.0
 grow_horizontal = 2
-grow_vertical = 0
+grow_vertical = 2
 size_flags_horizontal = 4
 size_flags_vertical = 8
 theme_override_font_sizes/font_size = 40
 text = "Start Game"
-
-[node name="InputManager" type="Node2D" parent="."]
-script = ExtResource("6_8wrfk")
 
 [node name="EndTurnButton" type="Button" parent="."]
 offset_left = 345.0
@@ -194,9 +226,6 @@ offset_top = 506.0
 offset_right = 441.0
 offset_bottom = 553.0
 text = "End Turn"
-
-[node name="CardDatabase" type="Node2D" parent="."]
-script = ExtResource("9_2n8ul")
 
 [node name="winLabel" type="Label" parent="."]
 visible = false
@@ -234,6 +263,7 @@ scale = Vector2(0.8, 0.8)
 texture = ExtResource("5_fhevv")
 
 [node name="MessageLabel" type="Label" parent="."]
+visible = false
 offset_left = 1040.0
 offset_top = 411.0
 offset_right = 1215.0
@@ -241,9 +271,15 @@ offset_bottom = 466.0
 theme_override_font_sizes/font_size = 35
 
 [node name="GuidePopup" type="AcceptDialog" parent="."]
+title = ""
+position = Vector2i(110, 365)
+size = Vector2i(1700, 350)
+content_scale_stretch = 1
+content_scale_factor = 2.0
 dialog_text = "Tips & Tricks
 - Do not put Dark Blue cards in the bank because you just need 2 cards to complete a set
-- You will not get back the cards placed in the Bank. They will all turn into money that can be used to pay rent."
+- You will not get back the cards placed in the Bank. They will all turn into money that can be used to pay rent.
+- Cards of the same type can be stacked in card slots to save space!"
 
 [node name="GuideButton" type="Button" parent="."]
 offset_left = 86.0
@@ -273,8 +309,11 @@ text = "You need to draw 2 cards to start your turn!"
 [node name="TurnTimer" type="Timer" parent="."]
 
 [node name="TimerLabel" type="Label" parent="."]
-offset_right = 40.0
-offset_bottom = 23.0
+offset_left = 987.0
+offset_top = 356.0
+offset_right = 1282.0
+offset_bottom = 421.0
+theme_override_font_sizes/font_size = 30
 
 [connection signal="pressed" from="EndTurnButton" to="." method="_on_end_turn_button_pressed"]
 [connection signal="pressed" from="EndTurnButton" to="CardManager" method="_on_end_turn_button_pressed"]
