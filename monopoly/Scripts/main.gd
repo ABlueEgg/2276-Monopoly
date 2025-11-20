@@ -7,6 +7,7 @@ func _ready() -> void:
 	bank_instance.name = "Bank" #so we can fint it
 	add_child(bank_instance)
 	# Hide gameplay elements at start
+	$TimerPrompt.visible = false
 	$Deck.visible = false
 	$RulesPrompt/RulesText.visible = false
 	$RulesPrompt/StartGameButton.visible = false
@@ -14,6 +15,8 @@ func _ready() -> void:
 	$RulesPrompt/Panel/YesButton.pressed.connect(_on_yes_pressed)
 	$RulesPrompt/Panel/NoButton.pressed.connect(_on_no_pressed)
 	$RulesPrompt/StartGameButton.pressed.connect(_on_start_game_pressed)
+	$TimerPrompt/yes.pressed.connect(_on_timer_yes_pressed)
+	$TimerPrompt/no.pressed.connect(_on_timer_no_pressed)
 	$GuideButton.pressed.connect(_on_guide_button_pressed)
 	
 #runs when HelpButton is clicked
@@ -33,9 +36,9 @@ The first player to collect three full property sets of different colors wins th
 You can win with two of the same color property set, as long as there are other full sets of different colors. 
 """
 	$RulesPrompt/RulesText.visible = true
-	$RulesPrompt/StartGameButton.visible = true
 	$RulesPrompt/Panel/YesButton.visible = false
 	$RulesPrompt/Panel/NoButton.visible = false
+	$TimerPrompt.visible = true
 	hide_rules_label()
 
 func hide_rules_label():
@@ -43,7 +46,11 @@ func hide_rules_label():
 		$RulesPrompt/Panel/Label.visible = false
 
 func _on_no_pressed() -> void:
-	_start_game()
+	$TimerPrompt.visible = true
+	$RulesPrompt/Panel/YesButton.visible = false
+	$RulesPrompt/Panel/NoButton.visible = false
+	hide_rules_label()
+	
 
 func _on_start_game_pressed() -> void:
 	_start_game()
@@ -54,6 +61,17 @@ func _start_game() -> void:
 	if $Deck.has_method("_ready"):
 		$Deck._ready()
 	$Deck.start_deck()
+	$CardManager._begin_game_turn()
 	
 func _on_end_game_button_pressed() -> void:
 	get_tree().quit()
+	
+func _on_timer_yes_pressed():
+	$TimerPrompt.hide()
+	$CardManager.timer_enabled = true
+	$RulesPrompt/StartGameButton.visible = true
+	
+func _on_timer_no_pressed():
+	$TimerPrompt.hide()
+	$CardManager.timer_enabled = false
+	$RulesPrompt/StartGameButton.visible = true
