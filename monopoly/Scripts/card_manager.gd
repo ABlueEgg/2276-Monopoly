@@ -2,6 +2,9 @@ extends Node2D
 
 const COLLISION_MASK_CARD = 1
 const COLLISION_MASK_CARD_SLOT = 2
+const COLLISION_MASK_BANK = 4
+const COLLISION_MASK_PLAY_AREA = 8
+
 const DEFAULT_CARD_MOVE_SPEED = 0.1
 const DEFAULT_CARD_SCALE = 0.8
 const CARD_BIGGER_SCALE = 0.85
@@ -107,36 +110,81 @@ func finish_drag():
 		return
 	var slot: Node = raycast_check_for_card_slot()
 	var bank_pile: Node = raycast_check_for_bank_pile()
-	if slot and cards_played_this_turn < 3:
-		var col := _normalize_colour(str(card_being_dragged.get_colour()))
-	if slot and cards_played_this_turn < 3:
+	var play_area_hit: bool = raycast_check_for_play_area() 
+	if cards_played_this_turn >=3:
+		max_cards_played_popup()
+		_return_card_to_hand()
+		return
+	# dropped in slot
+	if slot:
 		var col := _normalize_colour(str(card_being_dragged.get_colour()))
 		if _slot_can_accept(slot, col):
 			_place_card_into_slot(slot, card_being_dragged, col)
 			player_hand_ref.remove_card_from_hand(card_being_dragged)
 			if card_Db_Ref.COLOURS.has(col):
 				card_Db_Ref.COLOURS[col] -= 1
-				print(col, " now at ", card_Db_Ref.COLOURS[col])
+				print(col, "now at", card_Db_Ref.COLOURS[col])
 			check_win()
 			cards_played_this_turn += 1
 		else:
 			_reject_to_hand_with_reason(card_being_dragged, slot)
-	elif bank_pile and cards_played_this_turn < 3:
-		bank_pile.add_card_to_bank(card_being_dragged)
-		player_hand_ref.remove_card_from_hand(card_being_dragged)
-		cards_played_this_turn += 1
+	#2 dropped in bank
+	elif bank_pile:
+		if card_being_dragged.get_value() > 0:
+			bank_pile.add_card_to_bank(card_being_dragged)
+			player_hand_ref.remove_card_from_hand(card_being_dragged)
+			cards_played_this_turn += 1
+		else:
+			_return_card_to_hand()
+	#3. dropped in play area(action cards)
+	elif play_area_hit:
+		var c_type = card_Db_Ref.CARDS[card_being_dragged.cardName][1]
+		#for debug
+		print("DEbug: dropped ", card_being_dragged.cardName, "| Type: ", c_type)
+		if c_type == "action":
+			execute_action_card(card_being_dragged)
+			cards_played_this_turn += 1
+		else:
+			print("Only action cards can be played in the center!")
+			_return_card_to_hand()
+	#4 Dropped nowhere
 	else:
-		if cards_played_this_turn >= 3:
-			max_cards_played_popup()
-		var shape := card_being_dragged.get_node("Area2D/CollisionShape2D") as CollisionShape2D
-		if shape:
-			shape.disabled = false
-		player_hand_ref.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
+		_return_card_to_hand()
+	# Reset drag visuals
 	if is_instance_valid(card_being_dragged):
 		card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
 		if card_being_dragged.card_in_slot:
 			card_being_dragged.z_index = SLOT_Z_BASE + _slot_cards(card_being_dragged.card_in_slot).size()-1
 	card_being_dragged = null
+
+func _return_card_to_hand():
+	var shape := card_being_dragged.get_node("Area2D/CollisionShape2D") as CollisionObject2D
+	if shape:
+		shape.disabled = false
+	player_hand_ref.add_card_to_hand(card_being_dragged, DEFAULT_CARD_MOVE_SPEED)
+
+#Action card 
+func execute_action_card(card):
+	var name = card.cardName
+	print("Playing action:" + name)
+	match name:
+		"AC_PassGo":
+			#draw 2 card
+			var deck = $"../Deck"
+			deck.draw_card(true)
+			deck.draw_card(true)
+			#action cards go to discard 
+			discard_card(card)
+		_:
+			print("Action logic not implemented for" + name)
+			_return_card_to_hand()
+			#decrement counter cuz we didnt play it
+			cards_played_this_turn -= 1
+
+func discard_card(card):
+	# lets just delete. we dont really need array for take care of these stuff
+	player_hand_ref.remove_card_from_hand(card)
+	card.queue_free()
 
 func max_cards_played_popup() -> void:
 	var popup = Label.new()
@@ -385,3 +433,12 @@ func _begin_game_turn():
 		$"../TimerLabel".visible = true
 	start_turn()
 	
+func raycast_check_for_play_area() -> bool:
+	var space_state = get_world_2d().direct_space_state
+	var params = PhysicsPointQueryParameters2D.new()
+	params.position = get_global_mouse_position()
+	params.collide_with_areas = true
+	#layer 4
+	params.collision_mask = COLLISION_MASK_PLAY_AREA
+	var result = space_state.intersect_point(params)
+	return result.size() > 0

@@ -10,7 +10,7 @@ var player_deck = ["RR_BNO","RR_Penns","R_KentuckyAve", "R_Illinois","DB_ParkPla
 "G_PacificAve","G_NorthCarolinaAve", "R_IndianaAve", "Y_MarvinGardens", "RR_Reading","RR_ShortLine",
 "Y_VentnorAve", "G_PennsylvaniaAve", "DB_BroadWalk","LB_ConnectAve","LB_OrientalAve", "LB_VermontAve",
 "U_ElectricCompany","U_WaterWorks","P_StatesAve","P_StCharlesPlace","P_VirginiaAve", "O_NewYorkAve",
-"O_StJamesPlace","O_TennAve","B_BalticAve","B_MediAve"]
+"O_StJamesPlace","O_TennAve","B_BalticAve","B_MediAve", "AC_PassGo"]
 var card_DB_ref
 var cards_drawn_this_turn := 0
 var initialized := false  # prevent multiple starts
@@ -69,7 +69,7 @@ func draw_card(force_draw := false) -> void:
 	var new_card = card_scene.instantiate()
 	new_card.name = "Card"
 	var card_data = card_DB_ref.CARDS[card_drawn_name]
-	new_card.setup(card_data[0], card_data[1])
+	new_card.setup(card_data[0], card_data[1], card_drawn_name)
 	var card_image_node = new_card.get_node_or_null("Card_Image")
 	if card_image_node:
 		card_image_node.texture = load("res://Assets/%sCard.png" % card_drawn_name)

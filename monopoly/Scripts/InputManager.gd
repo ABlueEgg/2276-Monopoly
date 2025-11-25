@@ -28,7 +28,7 @@ func raycast_at_cursor():
 	parameters.collide_with_areas = true
 	var result = space_state.intersect_point(parameters)
 	if result.size() > 0:
-		var result_collision_mask = result[0].collider.collision_mask
+		var result_collision_mask = result[0].collider.collision_layer
 		if result_collision_mask == COLLISION_MASK_CARD:
 			#card clicked
 			var card_found = result[0].collider.get_parent()

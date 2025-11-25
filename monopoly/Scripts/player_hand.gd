@@ -51,9 +51,10 @@ func animate_card_to_position(card, target_position, speed, is_recentering := fa
 		.set_trans(Tween.TRANS_SINE)\
 		.set_ease(Tween.EASE_OUT)
 	await tween.finished
-	card.set_meta("tween", null)
-	if collision:
-		collision.disabled = false
+	if is_instance_valid(card):
+		card.set_meta("tween", null)
+		if collision:
+			collision.disabled = false
 
 func remove_card_from_hand(card):
 	if card in player_hand:
