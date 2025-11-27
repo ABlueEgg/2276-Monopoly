@@ -11,7 +11,7 @@ var player_deck = ["RR_BNO","RR_Penns","R_KentuckyAve", "R_Illinois","DB_ParkPla
 "R_IndianaAve", "Y_MarvinGardens", "RR_Reading","RR_ShortLine","Money_1M", "Money_2M", "Money_3M",
 "Y_VentnorAve", "G_PennsylvaniaAve", "DB_BroadWalk","LB_ConnectAve","LB_OrientalAve", "LB_VermontAve",
 "U_ElectricCompany","U_WaterWorks","P_StatesAve","P_StCharlesPlace","P_VirginiaAve", "O_NewYorkAve",
-"O_StJamesPlace","O_TennAve", "B_BalticAve","B_MediAve", "AC_PassGo",
+"O_StJamesPlace","O_TennAve", "B_BalticAve","B_MediAve", "AC_PassGo","AC_DealBreaker",
 #"Money_1M","Money_1M","Money_1M","Money_1M","Money_2M","Money_2M",
 #"Money_5M","Money_5M", "Money_5M", "Money_10M", "Money_10M",
  "AC_SlyDeal"]
@@ -117,3 +117,12 @@ func show_max_card_popup() -> void:
 	tween.tween_property(popup, "modulate:a", 0.0, 0.5)
 	await tween.finished
 	popup.queue_free()
+
+func draw_card_string() -> String:
+	if player_deck.is_empty():
+		return ""
+	var card_name = player_deck.pop_front()
+	update_deck_label()
+	if player_deck.is_empty():
+		set_deck_visible(false)
+	return card_name
