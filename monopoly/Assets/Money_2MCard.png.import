@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dmrgnha281f25"
-path="res://.godot/imported/U_ElectricCompanyCardPre.png-7f1d45b9785e521500014076a4722a08.ctex"
+uid="uid://ba7yktmflnxhn"
+path="res://.godot/imported/Money_2MCard.png-c7f28fd48d751ccd93cd093a5c7568a4.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://U_ElectricCompanyCardPre.png"
-dest_files=["res://.godot/imported/U_ElectricCompanyCardPre.png-7f1d45b9785e521500014076a4722a08.ctex"]
+source_file="res://Assets/Money_2MCard.png"
+dest_files=["res://.godot/imported/Money_2MCard.png-c7f28fd48d751ccd93cd093a5c7568a4.ctex"]
 
 [params]
 
