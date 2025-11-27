@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://7l173tk5bbnr"]
+[gd_scene load_steps=13 format=3 uid="uid://7l173tk5bbnr"]
 
 [ext_resource type="Script" path="res://Scripts/main.gd" id="1_27x0l"]
 [ext_resource type="Script" path="res://Scripts/card_manager.gd" id="1_crxfy"]
@@ -9,6 +9,7 @@
 [ext_resource type="Texture2D" uid="uid://0xg2o01x80tr" path="res://Assets/Deck.png" id="5_fhevv"]
 [ext_resource type="Script" path="res://Scripts/InputManager.gd" id="6_8wrfk"]
 [ext_resource type="Script" path="res://Scripts/CardDatabase.gd" id="9_2n8ul"]
+[ext_resource type="Script" path="res://scenes/opponent_manager.gd" id="10_wmuiy"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_rka2t"]
 size = Vector2(178, 262)
@@ -324,6 +325,9 @@ collision_layer = 8
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PlayArea"]
 position = Vector2(625.188, 485.063)
 shape = SubResource("RectangleShape2D_pqrv2")
+
+[node name="Opponent Manager" type="Node" parent="."]
+script = ExtResource("10_wmuiy")
 
 [connection signal="pressed" from="EndTurnButton" to="." method="_on_end_turn_button_pressed"]
 [connection signal="pressed" from="EndTurnButton" to="CardManager" method="_on_end_turn_button_pressed"]
