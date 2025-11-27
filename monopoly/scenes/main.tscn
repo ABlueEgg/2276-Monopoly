@@ -326,7 +326,7 @@ collision_layer = 8
 position = Vector2(625.188, 485.063)
 shape = SubResource("RectangleShape2D_pqrv2")
 
-[node name="Opponent Manager" type="Node" parent="."]
+[node name="OpponentManager" type="Node" parent="."]
 script = ExtResource("10_wmuiy")
 
 [connection signal="pressed" from="EndTurnButton" to="." method="_on_end_turn_button_pressed"]

@@ -69,6 +69,7 @@ func _process(delta: float) -> void:
 			tl.visible = true
 		
 func start_turn() -> void:
+	show_turn_message("It is your turn!", Color.GREEN)
 	timer_active = true
 	cards_played_this_turn = 0
 	turn_timer.start(TURN_DURATION)
@@ -76,6 +77,7 @@ func start_turn() -> void:
 func end_turn(reason: String = "") -> void:
 	timer_active = false
 	turn_timer.stop()
+	show_turn_message("Opponent's turn", Color.RED)
 	var msg := "Your turn ended! Starting new turn..."
 	var label = $"../MessageLabel" as Label
 	if label:
@@ -87,9 +89,14 @@ func end_turn(reason: String = "") -> void:
 			t.tween_property(label, "self_modulate", Color(1,0,0,1), 0.2) # red
 			t.tween_property(label, "self_modulate", Color(1,1,1,1), 0.2) # back to white
 		t.tween_property(label, "modulate:a", 0.0, 1.0).set_delay(0.3)
-		await t.finished
+		#await t.finished
 		label.visible = false
-	start_turn()
+		print("Passing turn to AI..")
+	var ai = $"../OpponentManager"
+	if ai:
+		ai.start_ai_turn()
+	else:
+		print("Error: opponent manager not found")
 	
 func _on_turn_timer_timeout() -> void:
 	if timer_active:
@@ -108,7 +115,10 @@ func start_drag(card):
 func finish_drag():
 	if card_being_dragged == null:
 		return
-	if not timer_active:
+	if not timer_active and timer_enabled:
+		print("wait for your turn!")
+		_return_card_to_hand()
+		card_being_dragged = null
 		return
 	if not can_play_cards:
 		print("You must draw 2 cards before playing!")
@@ -194,6 +204,16 @@ func execute_action_card(card):
 				label.text = "select property to steal"
 				label.visible = true
 				label.modulate.a = 1.0
+		"AC_DealBreaker":
+			print("Select a completed set to steal")
+			is_targeting_mode = true
+			pending_action_card = card
+			
+			var label = $"../MessageLabel"
+			if label:
+				label.text = "Select a completed set to steal"
+				label.visible = true
+				label.modulate.a = 1.0
 		_:
 			print("Action logic not implemented for" + name)
 			_return_card_to_hand()
@@ -206,9 +226,49 @@ func on_card_clicked(clicked_card):
 		return
 	if is_targeting_mode:
 		if clicked_card.card_in_slot and clicked_card.card_in_slot.name.begins_with("Opponent"):
-			resolve_sly_deal(clicked_card)
+			if pending_action_card.cardName == "AC_SlyDeal":
+				resolve_sly_deal(clicked_card)
+			elif pending_action_card.cardName == "AC_DealBreaker":
+				resolve_deal_breaker(clicked_card)
 		else:
 			print("Invalid Target! You must pick opponent's card.")
+func resolve_deal_breaker(target_card):
+	var target_slot = target_card.card_in_slot
+	# is it a full set?
+	var color = target_slot.get_meta("assigned_colour")
+	var cards_in_slot = target_slot.get_meta("cards_in_box")
+	var required_count = card_Db_Ref.COLOURS[color]
+	
+	if cards_in_slot.size() < required_count:
+		print("This is not a full set")
+		var label = $"../MessageLabel"
+		if label:
+			label.text = "That set is not full"
+		return
+	print("stealing " + color)
+	#duplicate the array 
+	var cards_to_steal = cards_in_slot.duplicate()
+	
+	for card in cards_to_steal:
+		#remove from opponent
+		var current_list = target_slot.get_meta("cards_in_box")
+		current_list.erase(card)
+		target_slot.set_meta("cards_in_box", current_list)
+		#move to plyaer hand
+		_reparent_keep_global(card,self)
+		card.card_in_slot = null
+		var area = card.get_node("Area2D/CollisionShape2D")
+		if area: area.disabled = false
+		player_hand_ref.add_card_to_hand(card, DEFAULT_CARD_MOVE_SPEED)
+	#no action card
+	is_targeting_mode = false
+	discard_card(pending_action_card)
+	pending_action_card = null
+	var label = $"../MessageLabel"
+	if label:
+		label.visible = false
+	check_win()
+
 func resolve_sly_deal(target_card):
 	print("stealing" + target_card.cardName)
 	var old_slot = target_card.card_in_slot
@@ -479,8 +539,8 @@ func _normalize_colour(raw: String) -> String:
 
 func _begin_game_turn():
 	if not timer_enabled:
-		timer_active = false
-		return  # skip starting the timer
+		timer_active = true
+		if $"../TimerLabel": $"../TimerLabel".visible = false
 	if $"../TimerLabel":
 		$"../TimerLabel".visible = true
 	start_turn()
@@ -494,3 +554,22 @@ func raycast_check_for_play_area() -> bool:
 	params.collision_mask = COLLISION_MASK_PLAY_AREA
 	var result = space_state.intersect_point(params)
 	return result.size() > 0
+
+func show_turn_message(text: String, color: Color = Color.WHITE)->void:
+	var label = $"../MessageLabel" as Label
+	if label:
+		if label.has_meta("active_tween"):
+			var old_t = label.get_meta("active_tween")
+			if old_t and old_t.is_valid():
+				old_t.kill()
+		label.self_modulate = Color.WHITE
+		label.text = text
+		label.modulate = color
+		label.modulate.a = 1.0
+		label.visible = true 
+		
+		var t = create_tween()
+		label.set_meta("active_tween", t)
+		t.tween_interval(3.0) 
+		t.tween_property(label, "modulate:a", 0.0, 1.0)
+		t.tween_callback(func(): label.visible = false)
