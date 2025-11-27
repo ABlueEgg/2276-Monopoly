@@ -27,6 +27,10 @@ const TURN_DURATION := 30.0
 var timer_active := false
 var turn_timer: Timer
 
+#targeting 
+var is_targeting_mode = false
+var pending_action_card = null
+
 func set_cards_playable(playable: bool) -> void:
 	for card in get_children():
 		# Look for the collider inside each card
@@ -92,6 +96,10 @@ func _on_turn_timer_timeout() -> void:
 		end_turn("timeout")
 
 func start_drag(card):
+	#don't drag opponent cards
+	if card.card_in_slot and card.card_in_slot.name.begins_with("Opponent"):
+		print("You can't drag the opponent's cards!")
+		return 
 	card_being_dragged = card
 	card.scale = Vector2(DEFAULT_CARD_SCALE,DEFAULT_CARD_SCALE)
 	card.z_index = 999
@@ -175,12 +183,56 @@ func execute_action_card(card):
 			deck.draw_card(true)
 			#action cards go to discard 
 			discard_card(card)
+		"AC_SlyDeal":
+			#1 dont discard yet wait for target
+			print("select")
+			is_targeting_mode = true
+			pending_action_card = card 
+			#show message
+			var label = $"../MessageLabel"
+			if label:
+				label.text = "select property to steal"
+				label.visible = true
+				label.modulate.a = 1.0
 		_:
 			print("Action logic not implemented for" + name)
 			_return_card_to_hand()
 			#decrement counter cuz we didnt play it
 			cards_played_this_turn -= 1
 
+func on_card_clicked(clicked_card):
+	if not is_targeting_mode:
+		start_drag(clicked_card)
+		return
+	if is_targeting_mode:
+		if clicked_card.card_in_slot and clicked_card.card_in_slot.name.begins_with("Opponent"):
+			resolve_sly_deal(clicked_card)
+		else:
+			print("Invalid Target! You must pick opponent's card.")
+func resolve_sly_deal(target_card):
+	print("stealing" + target_card.cardName)
+	var old_slot = target_card.card_in_slot
+	var old_list = old_slot.get_meta("cards_in_box")
+	old_list.erase(target_card)
+	old_slot.set_meta("cards_in_box", old_list)
+	#add to player hand
+	_reparent_keep_global(target_card, self)
+	target_card.card_in_slot = null 
+	# enable collision again
+	var area = target_card.get_node("Area2D/CollisionShape2D")
+	if area: area.disabled = false
+	
+	player_hand_ref.add_card_to_hand(target_card, DEFAULT_CARD_MOVE_SPEED)
+	#3. cleanup action
+	is_targeting_mode = false
+	discard_card(pending_action_card) # no more action card
+	pending_action_card = null
+	
+	# hide message
+	var label = $"../MessageLabel"
+	if label: label.visible = false
+	check_win() 
+	
 func discard_card(card):
 	# lets just delete. we dont really need array for take care of these stuff
 	player_hand_ref.remove_card_from_hand(card)
