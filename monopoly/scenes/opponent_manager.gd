@@ -5,11 +5,19 @@ const CARD_SCENE_PATH = "res://scenes/card.tscn"
 @onready var card_database = $"../CardDatabase"
 @onready var deck_ref = $"../Deck"
 @onready var card_manager_ref = $"../CardManager"
+@onready var ai_bank_ui = $"../OpponentDeck"
+@onready var ai_bank_label = $"../OpponentDeck/BankLabel"
 # Called when the node enters the scene tree for the first time.
 var ai_hand = [] 
 var ai_moves_left = 0
+var ai_bank_cards = []
+var ai_bank_total = 0
+const AI_BANK_OFFSET = Vector2(5, -5)
+const AI_BANK_CARD_SCALE = 0.8
+const AI_BANK_TWEEN_TIME = 0.2
 
 func _ready() -> void:
+	_update_ai_bank_label()
 	await get_tree().create_timer(1.0).timeout
 	for i in range(5):
 		draw_card_for_ai()
@@ -57,11 +65,71 @@ func attempt_play_card(card_name: String) -> bool:
 		draw_card_for_ai()
 		draw_card_for_ai()
 		return true
-	if type == "money" or type == "action" or type == "rent":
+	if type == "money":
+		play_money_card(card_name)
+		return true
+	if type == "action" or type == "rent":
 		return true
 	print("AI discarded unknown card: ", card_name)
 	return true
+	
+func play_money_card(card_name: String) -> bool:
+	var card_scene = load(CARD_SCENE_PATH)
+	var new_card = card_scene.instantiate()
+	var data = card_database.CARDS[card_name]
+	new_card.setup(data[0], data[1], card_name)
+	var img = new_card.get_node_or_null("Card_Image")
+	if img:
+		var path = "res://Assets/%sCard.png" % card_name
+		if ResourceLoader.exists(path):
+			img.texture = load(path)
+	add_card_to_ai_bank(new_card)
+	return true
 
+func add_card_to_ai_bank(card: Node2D) -> void:
+	if card == null:
+		return
+	if card.has_method("get_value"):
+		var value = card.get_value()
+		if value != null and value > 0:
+			ai_bank_total += value
+			_update_ai_bank_label()
+			print("AI Bank: Card added. New total: " + str(ai_bank_total) + "M")
+	ai_bank_cards.append(card)
+	var shape = card.get_node_or_null("Area2D/CollisionShape2D")
+	if shape:
+		shape.disabled = true
+	var old_parent = card.get_parent()
+	if old_parent:
+		old_parent.remove_child(card)
+	ai_bank_ui.add_child(card)
+	card.scale = Vector2(AI_BANK_CARD_SCALE, AI_BANK_CARD_SCALE)
+	var index = ai_bank_cards.size() - 1
+	var local_target_pos = AI_BANK_OFFSET * index
+	var tween = get_tree().create_tween()
+	tween.tween_property(card, "position", local_target_pos, AI_BANK_TWEEN_TIME)
+	tween.tween_property(card, "z_index", index + 1, AI_BANK_TWEEN_TIME)
+
+func _update_ai_bank_label() -> void:
+	if ai_bank_label:
+		ai_bank_label.text = str(ai_bank_total) + "M"
+		ai_bank_label.z_index = 100 
+		print("AI Bank label updated to:", ai_bank_label.text)
+	else:
+		push_warning("AI bank label is NULL – check the path to OpponentDeck/BankLabel")
+
+func get_ai_bank_total() -> int:
+	return ai_bank_total
+
+func spend_from_ai_bank(amount: int) -> bool:
+	if ai_bank_total >= amount:
+		ai_bank_total -= amount
+		_update_ai_bank_label()
+		print("AI Bank: Spent " + str(amount) + "M")
+		return true
+	print("AI Bank: Not enough money to spend")
+	return false
+	
 func play_property_card(card_name, color) -> bool:
 	var slot_to_use = null
 	var s1 = card_slots_parent.get_node("OpponentCardSlot")
