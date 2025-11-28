@@ -1,5 +1,16 @@
 extends Node2D
-
+const RENT_SCALES = {
+	"brown": [1,2],
+	"dblue": [3, 8],
+	"green": [2 ,4 ,7],
+	"yellow": [2, 4 ,6],
+	"red": [2,3,6],
+	"orange":[1,3,5],
+	"pink":[1,2,4],
+	"lightblue":[1,2,3],
+	"utility":[1,2],
+	"Railroad":[1,2,3,4]
+}
 const COLLISION_MASK_CARD = 1
 const COLLISION_MASK_CARD_SLOT = 2
 const COLLISION_MASK_BANK = 4
@@ -159,9 +170,10 @@ func finish_drag():
 		var c_type = card_Db_Ref.CARDS[card_being_dragged.cardName][1]
 		#for debug
 		print("DEbug: dropped ", card_being_dragged.cardName, "| Type: ", c_type)
-		if c_type == "action":
+		if c_type == "action" or c_type == "rent":
 			execute_action_card(card_being_dragged)
 			cards_played_this_turn += 1
+		
 		else:
 			print("Only action cards can be played in the center!")
 			_return_card_to_hand()
@@ -214,6 +226,9 @@ func execute_action_card(card):
 				label.text = "Select a completed set to steal"
 				label.visible = true
 				label.modulate.a = 1.0
+		"AC_Rent_Generic":
+			resolve_rent(["any"])
+			discard_card(card)
 		_:
 			print("Action logic not implemented for" + name)
 			_return_card_to_hand()
@@ -232,6 +247,76 @@ func on_card_clicked(clicked_card):
 				resolve_deal_breaker(clicked_card)
 		else:
 			print("Invalid Target! You must pick opponent's card.")
+	
+func resolve_rent(allowed_colors: Array)->void:
+	var best_rent = 0
+	var best_color = ""
+	#checks all colors
+	var colors_to_check = allowed_colors
+	if allowed_colors.has("any"):
+		colors_to_check = RENT_SCALES.keys()
+	# find the highest rent u can charge
+	for col in colors_to_check:
+		var rent_value = calculate_player_rent_for_color(col)
+		if rent_value > best_rent:
+			best_rent = rent_value
+			best_color = col
+	#charge now
+	if best_rent > 0:
+		print("Charging opponent" + str(best_rent))
+		charge_opponent(best_rent)
+		#visual
+		var label = $"../MessageLabel"
+		if label:
+			label.text = "CHARGED AI" + str(best_rent) + "M RENT!"
+			label.visible = true
+			label.modulate = Color.GREEN
+			label.self_modulate = Color.WHITE
+			var t = create_tween()
+			t.tween_interval(2.0)
+			t.tween_property(label, "modulate:a", 0.0, 1.0)
+			t.tween_callback(func(): label.visible = false)
+	else:
+		print("you don't own any properties to charge rent for!")
+func calculate_player_rent_for_color(color: String)-> int:
+	if not RENT_SCALES.has(color):
+		return 0
+	var count = 0
+	var slots_parent = $"../CardSlots"
+	#how many cards of this color u have played
+	for slot in slots_parent.get_children():
+		if slot.name.begins_with("Opponent"):
+			continue
+		if slot.has_meta("assigned_colour") and slot.get_meta("assigned_colour") == color:
+			var cards = slot.get_meta("cards_in_box")
+			count += cards.size()
+	var scale = RENT_SCALES[color]
+	if count <= 0:
+		return 0
+	var index = min(count -1, scale.size() -1)
+	return scale[index]
+func charge_opponent(amount:int)->void:
+	var ai = $"../OpponentManager"
+	var player_bank = $"../Bank"
+	if not player_bank:
+		print("Error: cound not find Player Bank")
+		return
+	if ai: 
+		var payment_cards = ai.force_pay_from_bank(amount)
+		if payment_cards.size() == 0:
+			print("AI is broke! no cards to pay with")
+			return
+		var total_value_received = 0
+		# move each card to player bank
+		for card in payment_cards:
+			var area = card.get_node_or_null("Area2D/CollisionShape2D")
+			if area: 
+				area.disabled = false
+			if card.has_method("get_value"):
+				total_value_received += card.get_value()
+			player_bank.add_card_to_bank(card)
+		print("Received " + str(total_value_received)+ "M in rent")
+
 func resolve_deal_breaker(target_card):
 	var target_slot = target_card.card_in_slot
 	# is it a full set?

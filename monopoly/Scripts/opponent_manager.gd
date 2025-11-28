@@ -188,3 +188,29 @@ func spawn_card_into_slot(slot_node, card_name, color):
 	slot_node.set_meta("cards_in_box", existing_cards)
 	slot_node.set_meta("assigned_colour", color)
 	
+func force_pay_from_bank(amount_requested: int)-> Array:
+	var cards_to_pay_with = []
+	var value_collected = 0
+	for i in range(ai_bank_cards.size() -1, -1, -1):
+		if value_collected >= amount_requested:
+			break
+		var card = ai_bank_cards[i]
+		var card_val = 0
+		if card.has_method("get_value"):
+			card_val = card.get_value()
+		value_collected += card_val
+		ai_bank_total -= card_val
+		#remove from ai list
+		ai_bank_cards.remove_at(i)
+		#remove from visual tree
+		if card.get_parent():
+			card.get_parent().remove_child(card)
+		#add to payment
+		cards_to_pay_with.append(card)
+	#update ai visuals
+	if ai_bank_total < 0:
+		ai_bank_total = 0
+	_update_ai_bank_label()
+	print("AI is paying" + str(value_collected) + "M using" + str(cards_to_pay_with.size()) + " cards.")
+	return cards_to_pay_with
+	
