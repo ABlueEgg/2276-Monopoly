@@ -53,6 +53,10 @@ func end_ai_turn():
 	var cm = $"../CardManager"
 	if cm:
 		cm.check_ai_win_or_tie()
+		if cm.playing:
+			cm._begin_game_turn()
+		else:
+			print("game over. AI stopped playing.")
 	card_manager_ref._begin_game_turn() # back to the player
 
 func draw_card_for_ai():
@@ -136,23 +140,31 @@ func spend_from_ai_bank(amount: int) -> bool:
 	
 func play_property_card(card_name, color) -> bool:
 	var slot_to_use = null
-	var s1 = card_slots_parent.get_node("OpponentCardSlot")
-	if _slot_matches_color(s1,color): slot_to_use = s1
-	var s2 = card_slots_parent.get_node("OpponentCardSlot2")
-	if slot_to_use == null and _slot_matches_color(s2,color): slot_to_use = s2
+	var all_slots = []
+	for child in card_slots_parent.get_children():
+		if child.name.begins_with("Opponent"):
+			all_slots.append(child)
+	# find a slot with the same color
+	for slot in all_slots:
+		if slot_matches_color(slot,color):
+			slot_to_use = slot
+			break
+	#if there is none with the same color, use a new one
 	if slot_to_use == null:
-		if _is_slot_empty(s1): slot_to_use = s1
-		elif _is_slot_empty(s2): slot_to_use = s2
+		for slot in all_slots:
+			if is_slot_empty(slot):
+				slot_to_use = slot
+				break
 	if slot_to_use:
 		spawn_card_into_slot(slot_to_use, card_name, color)
 		return true
 	return false
 
-func _slot_matches_color(slot, col):
+func slot_matches_color(slot, col):
 	if not slot.has_meta("assigned_colour"):
 		return false
 	return slot.get_meta("assigned_colour") == col
-func _is_slot_empty(slot):
+func is_slot_empty(slot):
 	if not slot.has_meta("cards_in_box"):
 		return true
 	var cards = slot.get_meta("cards_in_box")
