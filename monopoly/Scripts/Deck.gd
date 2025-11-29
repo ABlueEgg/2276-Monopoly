@@ -126,3 +126,7 @@ func draw_card_string() -> String:
 	if player_deck.is_empty():
 		set_deck_visible(false)
 	return card_name
+
+#check if deck is empty or not
+func is_empty()->bool:
+	return player_deck.size()==0

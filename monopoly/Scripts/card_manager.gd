@@ -507,11 +507,75 @@ func check_win():
 	# 3) Win check
 	if counter >= 3:
 		win()
+	check_ai_win_or_tie()
 
 func win():
 	$"../winLabel".visible = true
 	#$"../horribleSpaghetti".visible = true
 	playing = false
+	timer_active = false
+	if is_instance_valid(turn_timer):
+		turn_timer.stop()
+
+func ai_win():
+	var label = $"../winLabel"
+	if label:
+		label.text = "You lose!"
+		label.visible = true
+	playing = false
+	timer_active = false
+	if is_instance_valid(turn_timer):
+		turn_timer.stop()
+
+func check_ai_win_or_tie() -> void:
+	if not playing:
+		return
+	var label = $"../winLabel"
+	var deck = $"../Deck"
+	var ai_sets = _count_ai_sets()
+	if ai_sets >= 3:
+		ai_win()
+		return
+	if deck.is_empty()==true:
+		var player_sets = _count_player_sets()
+		if player_sets < 3 and ai_sets < 3:
+			if label:
+				label.text = "Tie!"
+				label.visible = true
+			playing = false
+			timer_active = false
+			if is_instance_valid(turn_timer):
+				turn_timer.stop()
+
+func _count_player_sets():
+	var n = 0
+	for col in card_Db_Ref.COLOURS:
+		if card_Db_Ref.COLOURS[col] <= 0:
+			n += 1
+	return n
+	
+func _count_ai_sets():
+	var n = 0
+	var slots_parent = $"../CardSlots"
+	#for loop to check if the slot is ai's or player's
+	for slot in slots_parent.get_children():
+		if not slot.name.begins_with("Opponent"):
+			continue
+		if not slot.has_meta("assigned_colour"):
+			continue
+		if not slot.has_meta("cards_in_box"):
+			continue
+		var col = str(slot.get_meta("assigned_colour"))
+		if col == "":
+			continue
+		var cards = slot.get_meta("cards_in_box")
+		var need = 0
+		if RENT_SCALES.has(col):
+			need = RENT_SCALES[col].size()
+		if need > 0 and cards.size() >= need:
+			n += 1
+	print("AI set = ", n)
+	return n
 
 func on_left_click_released():
 	if card_being_dragged:
@@ -658,3 +722,4 @@ func show_turn_message(text: String, color: Color = Color.WHITE)->void:
 		t.tween_interval(3.0) 
 		t.tween_property(label, "modulate:a", 0.0, 1.0)
 		t.tween_callback(func(): label.visible = false)
+ 

@@ -49,6 +49,10 @@ func do_ai_move_loop():
 		
 func end_ai_turn():
 	print("--- AI TURN END ---")
+	#check everytime ai turn if deck empty then tie 
+	var cm = $"../CardManager"
+	if cm:
+		cm.check_ai_win_or_tie()
 	card_manager_ref._begin_game_turn() # back to the player
 
 func draw_card_for_ai():
