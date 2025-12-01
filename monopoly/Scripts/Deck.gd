@@ -13,7 +13,10 @@ var player_deck = ["RR_BNO","RR_Penns","R_KentuckyAve", "R_Illinois","DB_ParkPla
 "U_ElectricCompany","U_WaterWorks","P_StatesAve","P_StCharlesPlace","P_VirginiaAve", "O_NewYorkAve",
 "O_StJamesPlace","O_TennAve", "B_BalticAve","B_MediAve", "AC_PassGo","AC_DealBreaker",
 "Money_1M","Money_1M","Money_1M","Money_1M","Money_2M","Money_2M",
-#"Money_5M","Money_5M", "Money_5M", "Money_10M", "Money_10M",
+"Money_5M","Money_5M", "Money_5M", "Money_10M", "Money_10M",
+ "AC_SlyDeal","AC_Rent_Generic","AC_Rent_Generic", "AC_PassGo","AC_DealBreaker",
+"Money_1M","Money_1M","Money_1M","Money_1M","Money_2M","Money_2M",
+"Money_5M","Money_5M", "Money_5M", "Money_10M", "Money_10M",
  "AC_SlyDeal","AC_Rent_Generic","AC_Rent_Generic"]
 var card_DB_ref
 var cards_drawn_this_turn := 0
