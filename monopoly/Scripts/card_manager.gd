@@ -37,6 +37,8 @@ var announced_sets := {}
 const TURN_DURATION := 30.0
 var timer_active := false
 var turn_timer: Timer
+var turn_label: Label
+var turn_tween: Tween
 
 #targeting 
 var is_targeting_mode = false
@@ -58,6 +60,9 @@ func _ready() -> void:
 	newTurn()
 	$"../TimerLabel".visible = false
 	turn_timer = $"../TurnTimer"
+	turn_label = $"../TurnLabel"
+	if turn_label:
+		turn_label.visible = false
 	if turn_timer == null:
 		push_error("TurnTimer node not found!")
 		return
@@ -80,7 +85,7 @@ func _process(delta: float) -> void:
 			tl.visible = true
 		
 func start_turn() -> void:
-	show_turn_message("It is your turn!", Color.GREEN)
+	show_turn_banner("It is your turn!", Color.GREEN, 3.0)
 	timer_active = true
 	cards_played_this_turn = 0
 	turn_timer.start(TURN_DURATION)
@@ -88,7 +93,7 @@ func start_turn() -> void:
 func end_turn(reason: String = "") -> void:
 	timer_active = false
 	turn_timer.stop()
-	show_turn_message("Opponent's turn", Color.RED)
+	show_turn_banner("Opponent's turn", Color.RED, 3.0)
 	var msg := "Your turn ended! Starting new turn..."
 	var label = $"../MessageLabel" as Label
 	if label:
@@ -143,6 +148,10 @@ func finish_drag():
 	if cards_played_this_turn >=3:
 		max_cards_played_popup()
 		_return_card_to_hand()
+		if is_instance_valid(card_being_dragged):
+			card_being_dragged.scale = Vector2(CARD_BIGGER_SCALE, CARD_BIGGER_SCALE)
+			card_being_dragged.z_index = 1
+		card_being_dragged = null
 		return
 	# dropped in slot
 	if slot:
@@ -716,10 +725,24 @@ func show_turn_message(text: String, color: Color = Color.WHITE)->void:
 		label.modulate = color
 		label.modulate.a = 1.0
 		label.visible = true 
-		
 		var t = create_tween()
 		label.set_meta("active_tween", t)
-		t.tween_interval(3.0) 
+		t.tween_interval(5.0) 
 		t.tween_property(label, "modulate:a", 0.0, 1.0)
 		t.tween_callback(func(): label.visible = false)
  
+func show_turn_banner(text: String, color: Color = Color.WHITE, duration: float = 5.0) -> void:
+	if turn_label == null:
+		return
+	if turn_tween and turn_tween.is_valid():
+		turn_tween.kill()
+	turn_label.text = text
+	turn_label.add_theme_font_size_override("font_size", 48)
+	turn_label.modulate = color
+	turn_label.modulate.a = 1.0
+	turn_label.visible = true
+	turn_tween = create_tween()
+	turn_tween.tween_interval(duration)
+	turn_tween.tween_property(turn_label, "modulate:a", 0.0, 0.6)
+	turn_tween.tween_callback(func(): turn_label.visible = false)
+	
