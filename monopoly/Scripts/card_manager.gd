@@ -386,7 +386,90 @@ func resolve_sly_deal(target_card):
 	var label = $"../MessageLabel"
 	if label: label.visible = false
 	check_win() 
-	
+
+func ai_sly_deal() -> bool:
+	var slots_parent = $"../CardSlots"
+	var target_card = null
+	var old_slot = null
+	#get a property card from player's slot
+	for slot in slots_parent.get_children():
+		if slot.name.begins_with("Opponent"):
+			continue
+		if not slot.has_meta("cards_in_box"):
+			continue
+		var cards = slot.get_meta("cards_in_box")
+		if cards.size() == 0:
+			continue
+		target_card = cards[0]
+		old_slot = slot
+		break
+	#if cant find it then just return
+	if target_card == null:
+		print("AI Sly Deal: no cards")
+		return false
+	#remove the card that has been stolen by ai from player slot 
+	print("AI Sly Deal: ", target_card.cardName)
+	var old_list = old_slot.get_meta("cards_in_box")
+	old_list.erase(target_card)
+	old_slot.set_meta("cards_in_box", old_list)
+	#pass the card to ai to place on its slot
+	var ai_manager = $"../OpponentManager"
+	if ai_manager and ai_manager.has_method("spawn_card_into_ai_slot"):
+		ai_manager.spawn_card_into_ai_slot(target_card)
+	else:
+		print("something goes wrong")
+		return false
+	check_ai_win_or_tie()
+	return true
+
+func ai_deal_breaker() -> bool:
+	var slots_parent = $"../CardSlots"
+	var target_slot = null
+	var target_color = ""
+	# find player's complete set
+	for slot in slots_parent.get_children():
+		# skip opponent set
+		if slot.name.begins_with("Opponent"):
+			continue
+		if not slot.has_meta("assigned_colour"):
+			continue
+		if not slot.has_meta("cards_in_box"):
+			continue
+		var col = str(slot.get_meta("assigned_colour"))
+		if col == "":
+			continue
+		var cards = slot.get_meta("cards_in_box") as Array
+		if cards.size() == 0:
+			continue
+		# check if it is complete set
+		if RENT_SCALES.has(col):
+			var need = RENT_SCALES[col].size()
+			if cards.size() >= need:
+				target_slot = slot
+				target_color = col
+				break
+	# check if there is no set to steal
+	if target_slot == null:
+		print("AI DealBreaker: no full set to steal")
+		return false
+	print("AI DealBreaker stealing full set of color: ", target_color)
+	# get a copy a set for stealing
+	var cards_to_steal = (target_slot.get_meta("cards_in_box") as Array).duplicate()
+	# move a set to ai's slot
+	var ai_manager = $"../OpponentManager"
+	if ai_manager == null or not ai_manager.has_method("spawn_card_into_ai_slot"):
+		print("ERROR: OpponentManager or spawn_card_into_ai_slot missing")
+		return false
+	for card in cards_to_steal:
+		# move a set from player's slot
+		var current_list = target_slot.get_meta("cards_in_box")
+		current_list.erase(card)
+		target_slot.set_meta("cards_in_box", current_list)
+		card.card_in_slot = null
+		ai_manager.spawn_card_into_ai_slot(card)
+	check_ai_win_or_tie()
+	return true
+
 func discard_card(card):
 	# lets just delete. we dont really need array for take care of these stuff
 	player_hand_ref.remove_card_from_hand(card)
@@ -746,3 +829,14 @@ func show_turn_banner(text: String, color: Color = Color.WHITE, duration: float 
 	turn_tween.tween_property(turn_label, "modulate:a", 0.0, 0.6)
 	turn_tween.tween_callback(func(): turn_label.visible = false)
 	
+#when ai uses action cards show a message
+func show_ai_action(msg: String) -> void:
+	var label = $"../MessageLabel" as Label
+	if label:
+		label.text = msg
+		label.visible = true
+		label.modulate.a = 1.0
+		var t = create_tween()
+		t.tween_interval(1.5)
+		t.tween_property(label, "modulate:a", 0.0, 1.0)
+		t.tween_callback(func(): label.visible = false)
