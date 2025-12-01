@@ -338,11 +338,21 @@ func resolve_deal_breaker(target_card):
 		var label = $"../MessageLabel"
 		if label:
 			label.text = "That set is not full"
+			label.visible = true
+			label.modulate.a = 1.0
+			var t = create_tween()
+			t.tween_interval(1.5)
+			t.tween_property(label, "modulate:a", 0.0, 1.0)
+			t.tween_callback(func(): label.visible = false)
+		is_targeting_mode = false
+		if pending_action_card:
+			player_hand_ref.add_card_to_hand(pending_action_card, DEFAULT_CARD_MOVE_SPEED)
+			cards_played_this_turn = max(cards_played_this_turn - 1, 0)
+			pending_action_card = null
 		return
 	print("stealing " + color)
 	#duplicate the array 
 	var cards_to_steal = cards_in_slot.duplicate()
-	
 	for card in cards_to_steal:
 		#remove from opponent
 		var current_list = target_slot.get_meta("cards_in_box")

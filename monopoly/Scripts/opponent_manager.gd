@@ -89,18 +89,18 @@ func attempt_play_card(card_name: String) -> bool:
 			print("AI DealBreaker succeeded")
 		else:
 			print("AI DealBreaker failed")
-	return true
+		return true
 	if type == "money":
 		play_money_card(card_name)
-		return true
-	if type == "action":
-		print("AI plays action card")
 		return true
 	if type == "rent":
 		card_manager_ref.show_ai_action("opponent charged Rent")
 		print("AI plays rent card")
 		if card_manager_ref:
 			card_manager_ref.resolve_rent(["any"])
+		return true
+	if type == "action":
+		print("AI plays action card")
 		return true
 	print("AI discarded unknown card: ", card_name)
 	return true
