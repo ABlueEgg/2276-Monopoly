@@ -22,6 +22,7 @@ const CARD_BIGGER_SCALE = 0.85
 const CARD_SMALLER_SCALE = 0.6
 const SLOT_OFFSET:=Vector2(18,-2)
 const SLOT_Z_BASE:=200
+const TURN_DURATION := 30.0
 
 var screen_size
 var card_being_dragged
@@ -29,16 +30,18 @@ var is_hovering_on_card
 var player_hand_ref
 var played_card
 var card_Db_Ref 
-var cards_played_this_turn 
+var cards_played_this_turn: int = 0
 var timer_enabled := true
 var can_play_cards = true
 var playing = true
 var announced_sets := {}
-const TURN_DURATION := 30.0
 var timer_active := false
 var turn_timer: Timer
 var turn_label: Label
 var turn_tween: Tween
+
+@onready var card_popup_instance = $"../PopupLayer/PopupPanel"
+var current_popup = null
 
 #targeting 
 var is_targeting_mode = false
@@ -57,7 +60,6 @@ func _ready() -> void:
 	player_hand_ref = $"../PlayerHand"
 	$"../InputManager".connect("left_mouse_button_released", on_left_click_released)
 	card_Db_Ref = $"../CardDatabase"
-	newTurn()
 	$"../TimerLabel".visible = false
 	turn_timer = $"../TurnTimer"
 	turn_label = $"../TurnLabel"
@@ -71,7 +73,7 @@ func _ready() -> void:
 		turn_timer.timeout.connect(_on_turn_timer_timeout)
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
-func _process(delta: float) -> void:
+func _process(_delta: float) -> void:
 	if not playing:
 		return
 	if card_being_dragged:
@@ -82,7 +84,6 @@ func _process(delta: float) -> void:
 		var tl := $"../TimerLabel" as Label 
 		if tl:
 			tl.text = "Your turn: %ds" % int(ceil(turn_timer.time_left))
-			tl.visible = true
 		
 func start_turn() -> void:
 	show_turn_banner("It is your turn!", Color.GREEN, 3.0)
@@ -90,7 +91,7 @@ func start_turn() -> void:
 	cards_played_this_turn = 0
 	turn_timer.start(TURN_DURATION)
 
-func end_turn(reason: String = "") -> void:
+func end_turn(_reason: String = "") -> void:
 	timer_active = false
 	turn_timer.stop()
 	show_turn_banner("Opponent's turn", Color.RED, 3.0)
@@ -204,9 +205,9 @@ func _return_card_to_hand():
 
 #Action card 
 func execute_action_card(card):
-	var name = card.cardName
-	print("Playing action:" + name)
-	match name:
+	var card_name = card.cardName
+	print("Playing action:" + card_name)
+	match card_name:
 		"AC_PassGo":
 			#draw 2 card
 			var deck = $"../Deck"
@@ -239,7 +240,7 @@ func execute_action_card(card):
 			resolve_rent(["any"])
 			discard_card(card)
 		_:
-			print("Action logic not implemented for" + name)
+			print("Action logic not implemented for" + card_name)
 			_return_card_to_hand()
 			#decrement counter cuz we didnt play it
 			cards_played_this_turn -= 1
@@ -299,11 +300,11 @@ func calculate_player_rent_for_color(color: String)-> int:
 		if slot.has_meta("assigned_colour") and slot.get_meta("assigned_colour") == color:
 			var cards = slot.get_meta("cards_in_box")
 			count += cards.size()
-	var scale = RENT_SCALES[color]
+	var scaleRef = RENT_SCALES[color]
 	if count <= 0:
 		return 0
-	var index = min(count -1, scale.size() -1)
-	return scale[index]
+	var index = min(count -1, scaleRef.size() -1)
+	return scaleRef[index]
 func charge_opponent(amount:int)->void:
 	var ai = $"../OpponentManager"
 	var player_bank = $"../Bank"
@@ -591,19 +592,37 @@ func on_left_click_released():
 		finish_drag()
 
 func on_hovered_over_card(card):
-	if !is_hovering_on_card:
-		is_hovering_on_card = true
-		highlight_card(card, true)
+	if is_hovering_on_card:
+		return
+	is_hovering_on_card = true
+	highlight_card(card, true)
+	if !is_instance_valid(card_popup_instance):
+		push_error("failed to instantiate the card popup scene")
+		return
+	var description = card_Db_Ref.get_card_description(card.cardName)
+	card_popup_instance.set_description(description)
+	var visual_node = card.get_node("Card_Image")
+	var card_width = 0
+	var card_texture = visual_node.get_texture()
+	if card_texture:
+		card_width = card_texture.get_width()
+	else:
+		card_width = 100
+	var popup_position = card.global_position + Vector2(card_width / 2, - card_popup_instance.size.y - 10)
+	card_popup_instance.set_position(popup_position)
+	card_popup_instance.popup()
 	
 func on_hovered_off_card(card):
 	#check if card is in a slot and not being dragged
 	if !card.card_in_slot && !card_being_dragged:
 		#if not dragging
 		highlight_card(card, false)
+		if is_instance_valid(card_popup_instance):
+			card_popup_instance.hide()
 		#check if hovered off card straight on to another card
 		var new_card_hovered = raycast_check_for_card()
 		if new_card_hovered:
-			highlight_card(new_card_hovered, true)
+			on_hovered_over_card(new_card_hovered)
 		else:
 			is_hovering_on_card = false
 	
@@ -698,7 +717,9 @@ func _normalize_colour(raw: String) -> String:
 func _begin_game_turn():
 	if not timer_enabled:
 		timer_active = true
-		if $"../TimerLabel": $"../TimerLabel".visible = false
+		if $"../TimerLabel": 
+			$"../TimerLabel".visible = false
+			return
 	if $"../TimerLabel":
 		$"../TimerLabel".visible = true
 	start_turn()

@@ -1,0 +1,13 @@
+[gd_scene load_steps=2 format=3 uid="uid://8guvy3acn2oe"]
+
+[ext_resource type="Script" path="res://scenes/card_popup.gd" id="1_u2bb2"]
+
+[node name="PopupPanel" type="PopupPanel"]
+visible = true
+script = ExtResource("1_u2bb2")
+
+[node name="Label" type="Label" parent="."]
+offset_left = 4.0
+offset_top = 4.0
+offset_right = 96.0
+offset_bottom = 96.0

@@ -66,3 +66,43 @@ func is_property(card_name: String) -> bool:
 	if not CARDS.has(card_name): return false
 	var type = CARDS[card_name][1]
 	return type != "action" and type != "money" and type != "rent"
+	
+func get_card_color(card_name: String) -> String:
+	if CARDS.has(card_name):
+		return CARDS[card_name][1]
+	return ""
+	
+func get_card_description(card_name: String) -> String:
+	var type = get_card_color(card_name)
+	if is_property(card_name):
+		var color = type
+		var count = COLOURS[color]
+		var value = CARDS[card_name][0]
+		var desc = "Property Card: **%s** (%s Set). Value: **$%s Million**. " % [card_name.replace("_", " "), color.capitalize(), value]
+		if count > 1:
+			desc += "Collect **%s** total cards of this color to complete the set." % count
+		else:
+			desc += "This set only requires **%s** card." % count
+		return desc
+	elif type == "money":
+		var value = CARDS[card_name][0]
+		return "This is a **Money Card**. Value: **$%s Million**. Can be used for payments or placed in your bank." % value
+	match card_name:
+		"AC_PassGo":
+			return "Action Card: Draw 2 additional cards on your turn."
+		"AC_DealBreaker":
+			return "Action Card: Steal an opponent's complete property set."
+		"AC_SlyDeal":
+			return "Action Card: **Steal 1 property card** from any player, but it cannot be part of a completed set."
+		"AC_ForcedDeal":
+			return "Action Card: **Swap one of your properties** with one property from any other player. Neither can be part of a completed set."
+		"AC_DebtCollector":
+			return "Action Card: Demand **$5 Million** from a single player. This payment goes directly to your bank."
+		"AC_Birthday":
+			return "Action Card: Every other player must give you **$2 Million**. This payment goes directly to your bank."
+	# Rent Cards
+		"AC_Rent_Generic":
+			return "Rent Card: Charge rent on any **one color set** you own. All players with properties of that color must pay you."
+		"AC_Rent_BlueGreen":
+			return "Rent Card: Charge rent on any **Blue (Dark/Light) or Green set** you own. All players with properties of that color must pay you."
+	return "No detailed description available for this card."
