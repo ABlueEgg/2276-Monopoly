@@ -275,11 +275,10 @@ offset_right = 11.0
 offset_bottom = -119.0
 
 [node name="MessageLabel" type="Label" parent="."]
-visible = false
-offset_left = 1040.0
-offset_top = 411.0
-offset_right = 1215.0
-offset_bottom = 466.0
+offset_left = 1006.0
+offset_top = 409.0
+offset_right = 1181.0
+offset_bottom = 464.0
 theme_override_font_sizes/font_size = 35
 
 [node name="GuidePopup" type="AcceptDialog" parent="."]
