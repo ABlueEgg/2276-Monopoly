@@ -56,7 +56,8 @@ func add_card_to_bank(card: Node2D) -> void:
 	# Capture the card's global position BEFORE reparenting
 	var prev_global_pos = card.global_position
 	# Reparent under bank slot
-	card.get_parent().remove_child(card)
+	if card.get_parent():
+		card.get_parent().remove_child(card)
 	add_child(card)
 	# Restore card's visual position in world space
 	card.global_position = prev_global_pos
