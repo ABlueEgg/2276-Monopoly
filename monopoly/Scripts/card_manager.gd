@@ -649,6 +649,8 @@ func check_win():
 func win():
 	$"../winLabel".visible = true
 	#$"../horribleSpaghetti".visible = true
+	if has_node("../DrawCardsWarning"):
+		$"../DrawCardsWarning".visible = false
 	playing = false
 	timer_active = false
 	if is_instance_valid(turn_timer):
@@ -659,6 +661,8 @@ func ai_win():
 	if label:
 		label.text = "You lose!"
 		label.visible = true
+	if has_node("../DrawCardsWarning"):
+		$"../DrawCardsWarning".visible = false
 	playing = false
 	timer_active = false
 	if is_instance_valid(turn_timer):
@@ -679,6 +683,8 @@ func check_ai_win_or_tie() -> void:
 			if label:
 				label.text = "Tie!"
 				label.visible = true
+			if has_node("../DrawCardsWarning"):
+				$"../DrawCardsWarning".visible = false
 			playing = false
 			timer_active = false
 			if is_instance_valid(turn_timer):
