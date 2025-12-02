@@ -73,18 +73,3 @@ func add_card_to_bank(card: Node2D) -> void:
 #Helper function
 func get_total_value()-> int:
 	return total_value
-# Call this when you need to pay rent
-func spend_from_bank(amount_to_spend: int) -> bool:
-	if total_value >= amount_to_spend:
-		total_value -= amount_to_spend
-		
-		#Update the label
-		var label = $BankLabel
-		if label:
-			label.text = str(total_value) + "M"
-		print("Bank: Spent " + str(amount_to_spend) + "M")
-		return true
-	else:
-		#this means we dont have enough money
-		print("Bank: Not enough money to spend")
-		return false

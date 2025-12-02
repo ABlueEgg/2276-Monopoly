@@ -103,6 +103,18 @@ scale = Vector2(0.6, 0.6)
 position = Vector2(1120, 270)
 scale = Vector2(0.6, 0.6)
 
+[node name="OpponentCardSlot8" parent="CardSlots" instance=ExtResource("2_jt7y4")]
+position = Vector2(485, 270)
+scale = Vector2(0.6, 0.6)
+
+[node name="OpponentCardSlot9" parent="CardSlots" instance=ExtResource("2_jt7y4")]
+position = Vector2(335, 271)
+scale = Vector2(0.6, 0.6)
+
+[node name="OpponentCardSlot10" parent="CardSlots" instance=ExtResource("2_jt7y4")]
+position = Vector2(182, 271)
+scale = Vector2(0.6, 0.6)
+
 [node name="CardManager" type="Node2D" parent="."]
 script = ExtResource("1_crxfy")
 
