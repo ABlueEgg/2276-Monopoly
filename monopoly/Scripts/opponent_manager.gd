@@ -94,10 +94,10 @@ func attempt_play_card(card_name: String) -> bool:
 		play_money_card(card_name)
 		return true
 	if type == "rent":
-		card_manager_ref.show_ai_action("opponent charged Rent")
-		print("AI plays rent card")
-		if card_manager_ref:
-			card_manager_ref.resolve_rent(["any"])
+		#card_manager_ref.show_ai_action("opponent charged Rent")
+		#print("AI plays rent card")
+		#if card_manager_ref:
+			#card_manager_ref.resolve_rent(["any"])
 		return true
 	if type == "action":
 		print("AI plays action card")
@@ -228,13 +228,14 @@ func spawn_card_into_slot(slot_node, card_name, color):
 	slot_node.set_meta("cards_in_box", existing_cards)
 	slot_node.set_meta("assigned_colour", color)
 
-func spawn_card_into_ai_slot(card: Node2D) -> void:
+func spawn_card_into_ai_slot(card: Node2D, color: String = "") -> void:
 	if card_slots_parent == null:
 		print("AI: no card_slots_parent")
 		return
-	var color := ""
-	if card.has_method("get_colour"):
+	if color == "" and card.has_method("get_colour"):
 		color = str(card.get_colour()).to_lower()
+	else:
+		color = color.strip_edges().to_lower()
 	var all_slots: Array = []
 	for child in card_slots_parent.get_children():
 		if child.name.begins_with("Opponent"):
@@ -244,15 +245,16 @@ func spawn_card_into_ai_slot(card: Node2D) -> void:
 		return
 	var slot_to_use: Node = null
 	for slot in all_slots:
-		if slot.has_meta("assigned_colour") and str(slot.get_meta("assigned_colour")) == color:
-			slot_to_use = slot
-			break
-	if slot_to_use == null:
-		for slot in all_slots:
-			if not slot.has_meta("cards_in_box"):
+		if slot.has_meta("assigned_colour"):
+			var assigned = str(slot.get_meta("assigned_colour")).to_lower()
+			if assigned == color and color != "":
 				slot_to_use = slot
 				break
-			var cards = slot.get_meta("cards_in_box") as Array
+	if slot_to_use == null:
+		for slot in all_slots:
+			var cards: Array = []
+			if slot.has_meta("cards_in_box"):
+				cards = slot.get_meta("cards_in_box")
 			if cards.size() == 0:
 				slot_to_use = slot
 				break
@@ -272,7 +274,8 @@ func spawn_card_into_ai_slot(card: Node2D) -> void:
 	card.z_index = index
 	existing_cards.append(card)
 	slot_to_use.set_meta("cards_in_box", existing_cards)
-	slot_to_use.set_meta("assigned_colour", color)
+	if not slot_to_use.has_meta("assigned_colour") or str(slot_to_use.get_meta("assigned_colour")) == "":
+		slot_to_use.set_meta("assigned_colour", color)
 
 func force_pay_from_bank(amount_requested: int)-> Array:
 	var cards_to_pay_with = []

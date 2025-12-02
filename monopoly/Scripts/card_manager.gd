@@ -330,10 +330,18 @@ func charge_opponent(amount:int)->void:
 func resolve_deal_breaker(target_card):
 	var target_slot = target_card.card_in_slot
 	# is it a full set?
+	if target_slot == null or not target_slot.has_meta("assigned_colour") or not target_slot.has_meta("cards_in_box"):
+		is_targeting_mode = false
+		if pending_action_card:
+			player_hand_ref.add_card_to_hand(pending_action_card, DEFAULT_CARD_MOVE_SPEED)
+			cards_played_this_turn = max(cards_played_this_turn - 1, 0)
+			pending_action_card = null
+		return
 	var color = target_slot.get_meta("assigned_colour")
 	var cards_in_slot = target_slot.get_meta("cards_in_box")
-	var required_count = card_Db_Ref.COLOURS[color]
-	
+	var required_count = 0
+	if RENT_SCALES.has(color):
+		required_count = RENT_SCALES[color].size()
 	if cards_in_slot.size() < required_count:
 		print("This is not a full set")
 		var label = $"../MessageLabel"
@@ -365,6 +373,9 @@ func resolve_deal_breaker(target_card):
 		var area = card.get_node("Area2D/CollisionShape2D")
 		if area: area.disabled = false
 		player_hand_ref.add_card_to_hand(card, DEFAULT_CARD_MOVE_SPEED)
+	var remaining_cards = target_slot.get_meta("cards_in_box")
+	if remaining_cards.size() == 0:
+		target_slot.set_meta("assigned_colour", "")
 	#no action card
 	is_targeting_mode = false
 	discard_card(pending_action_card)
@@ -380,6 +391,9 @@ func resolve_sly_deal(target_card):
 	var old_list = old_slot.get_meta("cards_in_box")
 	old_list.erase(target_card)
 	old_slot.set_meta("cards_in_box", old_list)
+	# if that slot is empty now, clear the colour
+	if old_list.size() == 0:
+		old_slot.set_meta("assigned_colour", "")
 	#add to player hand
 	_reparent_keep_global(target_card, self)
 	target_card.card_in_slot = null 
@@ -418,11 +432,17 @@ func ai_sly_deal() -> bool:
 	if target_card == null:
 		print("AI Sly Deal: no cards")
 		return false
+	var col := ""
+	if old_slot and old_slot.has_meta("assigned_colour"):
+		col = str(old_slot.get_meta("assigned_colour")).to_lower()
 	#remove the card that has been stolen by ai from player slot 
 	print("AI Sly Deal: ", target_card.cardName)
 	var old_list = old_slot.get_meta("cards_in_box")
 	old_list.erase(target_card)
 	old_slot.set_meta("cards_in_box", old_list)
+	#if slot is empty now, clear colour so it becomes a free slot
+	if old_list.size() == 0:
+		old_slot.set_meta("assigned_colour", "")
 	#pass the card to ai to place on its slot
 	var ai_manager = $"../OpponentManager"
 	if ai_manager and ai_manager.has_method("spawn_card_into_ai_slot"):
@@ -478,6 +498,9 @@ func ai_deal_breaker() -> bool:
 		target_slot.set_meta("cards_in_box", current_list)
 		card.card_in_slot = null
 		ai_manager.spawn_card_into_ai_slot(card)
+	var remaining_cards = target_slot.get_meta("cards_in_box") as Array
+	if remaining_cards.size() == 0:
+		target_slot.set_meta("assigned_colour", "")
 	check_ai_win_or_tie()
 	return true
 
@@ -588,26 +611,37 @@ func connect_card_signals(card):
 	card.z_index = 1 
 
 func check_win():
-	var counter := 0
-	# 1) First pass: count completed sets
-	for col in card_Db_Ref.COLOURS:
-		if card_Db_Ref.COLOURS[col] <= 0:
-			counter += 1
-	# 2) Second pass: announce any *newly* completed colours and show "sets left"
-	for col in card_Db_Ref.COLOURS:
-		if card_Db_Ref.COLOURS[col] <= 0 and not announced_sets.get(col, false):
+	var slots_parent = $"../CardSlots"
+	var completed = {}
+	for slot in slots_parent.get_children():
+		if slot.name.begins_with("Opponent"):
+			continue
+		if not slot.has_meta("assigned_colour"):
+			continue
+		if not slot.has_meta("cards_in_box"):
+			continue
+		var slot_col = str(slot.get_meta("assigned_colour"))
+		if slot_col == "":
+			continue
+		if not RENT_SCALES.has(slot_col):
+			continue
+		var cards = slot.get_meta("cards_in_box") as Array
+		var need = RENT_SCALES[slot_col].size()
+		if cards.size() >= need:
+			completed[slot_col] = true
+	var counter = completed.size()
+	for col in completed.keys():
+		if not announced_sets.get(col, false):
 			announced_sets[col] = true
 			var remaining: int = max(3 - counter, 0)
-			#do not show once it gets to zero
 			if remaining > 0:
 				var info_label := $"../MessageLabel"
-				info_label.text = "%s Set Completed!  %d set%s left to win!" % [col,remaining,("s" if remaining != 1 else "")]
+				info_label.text = "%s Set Completed!  %d set%s left to win!" % [col, remaining, ("s" if remaining != 1 else "")]
 				info_label.visible = true
 				info_label.modulate.a = 1.0
 				var t := create_tween()
 				t.tween_property(info_label, "modulate:a", 0.0, 2.0).set_delay(0.5)
 				t.tween_callback(func(): info_label.visible = false)
-	# 3) Win check
 	if counter >= 3:
 		win()
 	check_ai_win_or_tie()
@@ -651,11 +685,26 @@ func check_ai_win_or_tie() -> void:
 				turn_timer.stop()
 
 func _count_player_sets():
-	var n = 0
-	for col in card_Db_Ref.COLOURS:
-		if card_Db_Ref.COLOURS[col] <= 0:
-			n += 1
-	return n
+	var slots_parent = $"../CardSlots"
+	var completed = {}
+	for slot in slots_parent.get_children():
+		# only player's slots
+		if slot.name.begins_with("Opponent"):
+			continue
+		if not slot.has_meta("assigned_colour"):
+			continue
+		if not slot.has_meta("cards_in_box"):
+			continue
+		var col = str(slot.get_meta("assigned_colour"))
+		if col == "":
+			continue
+		if not RENT_SCALES.has(col):
+			continue
+		var cards = slot.get_meta("cards_in_box") as Array
+		var need = RENT_SCALES[col].size()
+		if cards.size() >= need:
+			completed[col] = true
+	return completed.size()
 	
 func _count_ai_sets():
 	var n = 0
