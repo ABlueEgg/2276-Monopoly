@@ -42,7 +42,7 @@ var turn_tween: Tween
 
 @onready var card_popup_instance = $"../PopupLayer/PopupPanel"
 @onready var label = $"../MessageLabel"
-@onready 	var winLabel = $"../winLabel"
+@onready var winLabel = $"../winLabel"
 var current_popup = null
 
 #targeting 
@@ -913,7 +913,6 @@ func show_turn_banner(text: String, color: Color = Color.WHITE, duration: float 
 	
 #when ai uses action cards show a message
 func show_ai_action(msg: String) -> void:
-	var label = $"../MessageLabel" as Label
 	if label:
 		label.text = msg
 		label.visible = true
