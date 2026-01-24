@@ -71,13 +71,37 @@ func attempt_play_card(card_name: String) -> bool:
 	if type != "action" and type != "money" and type != "rent":
 		return play_property_card(card_name, type)
 	if card_name == "AC_PassGo":
+		card_manager_ref.show_ai_action("opponent used Pass Go (+2 cards)")
 		draw_card_for_ai()
 		draw_card_for_ai()
+		return true
+	if card_name == "AC_SlyDeal":
+		card_manager_ref.show_ai_action("opponent used Sly Deal")
+		print("AI attempts Sly Deal")
+		if card_manager_ref and card_manager_ref.ai_sly_deal():
+			print("AI Sly Deal succeeded")
+		else:
+			print("AI Sly Deal failed")
+		return true
+	if card_name == "AC_DealBreaker":
+		card_manager_ref.show_ai_action("opponent used Deal Breaker")
+		print("AI attempts DealBreaker")
+		if card_manager_ref and card_manager_ref.ai_deal_breaker():
+			print("AI DealBreaker succeeded")
+		else:
+			print("AI DealBreaker failed")
 		return true
 	if type == "money":
 		play_money_card(card_name)
 		return true
-	if type == "action" or type == "rent":
+	if type == "rent":
+		#card_manager_ref.show_ai_action("opponent charged Rent")
+		#print("AI plays rent card")
+		#if card_manager_ref:
+			#card_manager_ref.resolve_rent(["any"])
+		return true
+	if type == "action":
+		print("AI plays action card")
 		return true
 	print("AI discarded unknown card: ", card_name)
 	return true
@@ -204,7 +228,56 @@ func spawn_card_into_slot(slot_node, card_name, color):
 	existing_cards.append(new_card)
 	slot_node.set_meta("cards_in_box", existing_cards)
 	slot_node.set_meta("assigned_colour", color)
-	
+
+func spawn_card_into_ai_slot(card: Node2D, color: String = "") -> void:
+	if card_slots_parent == null:
+		print("AI: no card_slots_parent")
+		return
+	if color == "" and card.has_method("get_colour"):
+		color = str(card.get_colour()).to_lower()
+	else:
+		color = color.strip_edges().to_lower()
+	var all_slots: Array = []
+	for child in card_slots_parent.get_children():
+		if child.name.begins_with("Opponent"):
+			all_slots.append(child)
+	if all_slots.size() == 0:
+		print("AI: no opponent slots found")
+		return
+	var slot_to_use: Node = null
+	for slot in all_slots:
+		if slot.has_meta("assigned_colour"):
+			var assigned = str(slot.get_meta("assigned_colour")).to_lower()
+			if assigned == color and color != "":
+				slot_to_use = slot
+				break
+	if slot_to_use == null:
+		for slot in all_slots:
+			var cards: Array = []
+			if slot.has_meta("cards_in_box"):
+				cards = slot.get_meta("cards_in_box")
+			if cards.size() == 0:
+				slot_to_use = slot
+				break
+	if slot_to_use == null:
+		slot_to_use = all_slots[0]
+	if card.get_parent():
+		card.get_parent().remove_child(card)
+	slot_to_use.add_child(card)
+	card.card_in_slot = slot_to_use
+	var existing_cards: Array = []
+	if slot_to_use.has_meta("cards_in_box"):
+		existing_cards = slot_to_use.get_meta("cards_in_box")
+	var index := existing_cards.size()
+	var offset := Vector2(0, 20 * index)
+	card.position = offset
+	card.scale = Vector2(1, 1)
+	card.z_index = index
+	existing_cards.append(card)
+	slot_to_use.set_meta("cards_in_box", existing_cards)
+	if not slot_to_use.has_meta("assigned_colour") or str(slot_to_use.get_meta("assigned_colour")) == "":
+		slot_to_use.set_meta("assigned_colour", color)
+
 func force_pay_from_bank(amount_requested: int)-> Array:
 	var cards_to_pay_with = []
 	var value_collected = 0
