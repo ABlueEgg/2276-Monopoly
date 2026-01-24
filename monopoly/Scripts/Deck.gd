@@ -28,7 +28,6 @@ func _ready() -> void:
 	# Hide deck visuals until the player starts the game
 	set_deck_visible(false)
 	update_deck_label()
-	$"../EndTurnButton".pressed.connect(start_new_turn)
 
 func start_deck() -> void:
 	if initialized:
@@ -103,8 +102,7 @@ func draw_cards_at_turn_start() -> void:
 	else:
 		$"../DrawCardsWarning".visible = false
 		card_manager.can_play_cards = true
-
-
+		
 func show_max_card_popup() -> void:
 	var popup = Label.new()
 	popup.text = "You’ve selected the maximum number of cards for this turn!"

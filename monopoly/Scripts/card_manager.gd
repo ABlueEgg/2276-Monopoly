@@ -41,6 +41,8 @@ var turn_label: Label
 var turn_tween: Tween
 
 @onready var card_popup_instance = $"../PopupLayer/PopupPanel"
+@onready var label = $"../MessageLabel"
+@onready 	var winLabel = $"../winLabel"
 var current_popup = null
 
 #targeting 
@@ -96,7 +98,7 @@ func end_turn(_reason: String = "") -> void:
 	turn_timer.stop()
 	show_turn_banner("Opponent's turn", Color.RED, 3.0)
 	var msg := "Your turn ended! Starting new turn..."
-	var label = $"../MessageLabel" as Label
+	label = $"../MessageLabel" as Label
 	if label:
 		label.text = msg
 		label.visible = true
@@ -221,7 +223,6 @@ func execute_action_card(card):
 			is_targeting_mode = true
 			pending_action_card = card 
 			#show message
-			var label = $"../MessageLabel"
 			if label:
 				label.text = "select property to steal"
 				label.visible = true
@@ -231,7 +232,6 @@ func execute_action_card(card):
 			is_targeting_mode = true
 			pending_action_card = card
 			
-			var label = $"../MessageLabel"
 			if label:
 				label.text = "Select a completed set to steal"
 				label.visible = true
@@ -260,7 +260,7 @@ func on_card_clicked(clicked_card):
 	
 func resolve_rent(allowed_colors: Array)->void:
 	var best_rent = 0
-	var best_color = ""
+	#var best_color = ""
 	#checks all colors
 	var colors_to_check = allowed_colors
 	if allowed_colors.has("any"):
@@ -270,13 +270,12 @@ func resolve_rent(allowed_colors: Array)->void:
 		var rent_value = calculate_player_rent_for_color(col)
 		if rent_value > best_rent:
 			best_rent = rent_value
-			best_color = col
+			#best_color = col
 	#charge now
 	if best_rent > 0:
 		print("Charging opponent" + str(best_rent))
 		charge_opponent(best_rent)
 		#visual
-		var label = $"../MessageLabel"
 		if label:
 			label.text = "CHARGED AI" + str(best_rent) + "M RENT!"
 			label.visible = true
@@ -344,7 +343,6 @@ func resolve_deal_breaker(target_card):
 		required_count = RENT_SCALES[color].size()
 	if cards_in_slot.size() < required_count:
 		print("This is not a full set")
-		var label = $"../MessageLabel"
 		if label:
 			label.text = "That set is not full"
 			label.visible = true
@@ -380,7 +378,6 @@ func resolve_deal_breaker(target_card):
 	is_targeting_mode = false
 	discard_card(pending_action_card)
 	pending_action_card = null
-	var label = $"../MessageLabel"
 	if label:
 		label.visible = false
 	check_win()
@@ -408,7 +405,6 @@ func resolve_sly_deal(target_card):
 	pending_action_card = null
 	
 	# hide message
-	var label = $"../MessageLabel"
 	if label: label.visible = false
 	check_win() 
 
@@ -592,7 +588,7 @@ func _reject_to_hand_with_reason(card: Node2D, slot: Node) -> void:
 	else:
 		msg = "This box is reserved for %s." % assigned.capitalize()
 	if has_node("../MessageLabel"):
-		var label := $"../MessageLabel" as Label
+		label = $"../MessageLabel" as Label
 		label.text = msg
 		label.visible = true
 		label.modulate.a = 1.0
@@ -657,12 +653,9 @@ func win():
 		turn_timer.stop()
 
 func ai_win():
-	var label = $"../winLabel"
-	if label:
-		label.text = "You lose!"
-		label.visible = true
-	if has_node("../DrawCardsWarning"):
-		$"../DrawCardsWarning".visible = false
+	if winLabel:
+		winLabel.text = "You lose!"
+		winLabel.visible = true
 	playing = false
 	timer_active = false
 	if is_instance_valid(turn_timer):
@@ -671,7 +664,6 @@ func ai_win():
 func check_ai_win_or_tie() -> void:
 	if not playing:
 		return
-	var label = $"../winLabel"
 	var deck = $"../Deck"
 	var ai_sets = _count_ai_sets()
 	if ai_sets >= 3:
@@ -680,11 +672,9 @@ func check_ai_win_or_tie() -> void:
 	if deck.is_empty()==true:
 		var player_sets = _count_player_sets()
 		if player_sets < 3 and ai_sets < 3:
-			if label:
-				label.text = "Tie!"
-				label.visible = true
-			if has_node("../DrawCardsWarning"):
-				$"../DrawCardsWarning".visible = false
+			if winLabel:
+				winLabel.text = "Tie!"
+				winLabel.visible = true
 			playing = false
 			timer_active = false
 			if is_instance_valid(turn_timer):
@@ -758,7 +748,7 @@ func on_hovered_over_card(card):
 		card_width = 100
 	var popup_position = card.global_position + Vector2(card_width / 2, - card_popup_instance.size.y - 10)
 	card_popup_instance.set_position(popup_position)
-	card_popup_instance.popup()
+	card_popup_instance.call_deferred("show")
 	
 func on_hovered_off_card(card):
 	#check if card is in a slot and not being dragged
@@ -847,6 +837,12 @@ func get_card_with_highest_z_index(cards):
 func _on_end_turn_button_pressed() -> void:
 	if timer_active:
 		end_turn("button")
+	$"../Deck".start_new_turn()
+	#if cards in hand >= 7 
+	#	force player to discard enough cards so they are down to 5
+	# use a loop to make sure that the player has the right
+	# number of cards while total before turn ends
+	#		use helper function??
 
 func _normalize_colour(raw: String) -> String:
 	var s := raw.strip_edges().to_lower()
@@ -883,7 +879,7 @@ func raycast_check_for_play_area() -> bool:
 	return result.size() > 0
 
 func show_turn_message(text: String, color: Color = Color.WHITE)->void:
-	var label = $"../MessageLabel" as Label
+	label = $"../MessageLabel" as Label
 	if label:
 		if label.has_meta("active_tween"):
 			var old_t = label.get_meta("active_tween")
