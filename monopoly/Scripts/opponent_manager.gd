@@ -49,6 +49,7 @@ func do_ai_move_loop():
 		
 func end_ai_turn():
 	print("--- AI TURN END ---")
+	$"../CardManager".start_turn()
 	#check everytime ai turn if deck empty then tie 
 	var cm = $"../CardManager"
 	if cm:
@@ -66,7 +67,7 @@ func draw_card_for_ai():
 
 func attempt_play_card(card_name: String) -> bool:
 	var type = card_database.CARDS[card_name][1]
-	var value = card_database.CARDS[card_name][0]
+	var _value = card_database.CARDS[card_name][0]
 	if type != "action" and type != "money" and type != "rent":
 		return play_property_card(card_name, type)
 	if card_name == "AC_PassGo":

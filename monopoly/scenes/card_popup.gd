@@ -4,6 +4,8 @@ extends PopupPanel
 const PADDING = Vector2(20,20)
 
 func _ready():
+	gui_disable_input = true # Optional: prevents it from blocking mouse clicks
+	unfocusable = true
 	hide()
 
 func set_description(text: String):
@@ -11,4 +13,4 @@ func set_description(text: String):
 	description_label.queue_redraw()
 	var required_label_size = description_label.get_minimum_size()
 	size = required_label_size + PADDING
-	visible = true
+	set_deferred("visible", true)

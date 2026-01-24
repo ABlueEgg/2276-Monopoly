@@ -15,7 +15,7 @@ const TARGET_POS = Vector2(97, 972)
 func _ready():
 	# Ensure everything is visible
 	visible = true
-	var sprite = $Sprite2D
+	var sprite = $CardSlotImage
 	if sprite:
 		sprite.visible = true
 		sprite.z_index = 10
