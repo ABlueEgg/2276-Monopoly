@@ -428,9 +428,9 @@ func ai_sly_deal() -> bool:
 	if target_card == null:
 		print("AI Sly Deal: no cards")
 		return false
-	var col := ""
-	if old_slot and old_slot.has_meta("assigned_colour"):
-		col = str(old_slot.get_meta("assigned_colour")).to_lower()
+	#var col := ""
+	#if old_slot and old_slot.has_meta("assigned_colour"):
+		#col = str(old_slot.get_meta("assigned_colour")).to_lower()
 	#remove the card that has been stolen by ai from player slot 
 	print("AI Sly Deal: ", target_card.cardName)
 	var old_list = old_slot.get_meta("cards_in_box")
